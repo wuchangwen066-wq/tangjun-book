@@ -34,7 +34,12 @@
 (function () {
   'use strict';
 
-  var IMG = { desk: 'assets/桌案/position-ref.webp' };
+  var _bs = (document.currentScript && document.currentScript.src) || '';
+    var _bd = _bs ? _bs.replace(/[^/]*$/, '') : '';
+    /* 2026-10-11：srcdoc 里 <base> 不生效，构建期只把静态标签改成绝对 URL。
+       运行时拼的相对路径（本行旧值）请求发不出去 → 桌案整片白。
+       改为按本脚本自身 URL 推导站点根，Host 换了也不用改代码。 */
+    var IMG = { desk: _bd + 'position-ref.webp' };
   var RATIO = 2.7806;                /* 2091/752；条带高度随宽度自然得出 */
 
   /* ---------- 光影关键帧：集中在此，方便手调 ---------- */

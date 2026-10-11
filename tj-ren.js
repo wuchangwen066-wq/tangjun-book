@@ -17,6 +17,11 @@
 ================================================================== */
 (function () {
   'use strict';
+  /* 2026-10-11：srcdoc 里 <base> 不生效、构建期只改静态标签。
+     JS 里拼的相对路径请求发不出去 → SVG 贴图整片丢。
+     按本脚本自身 URL 推导站点根，换 Host 不用改代码。 */
+  var _rbase = (document.currentScript && document.currentScript.src || '').replace(/[^/]*$/, '');
+
 
   var L = window.TJLex;
   var NS = 'http://www.w3.org/2000/svg';
@@ -178,9 +183,9 @@
 
     /* 纸面贴图：真绢织纹（工具生成）＋宣纸纤维（CC0，指令 §4.1-2） */
     defs += '<pattern id="tjSilkTex" patternUnits="userSpaceOnUse" width="251" height="251">' +
-      '<image href="assets/processed/fan-silk.webp" x="0" y="0" width="251" height="251" preserveAspectRatio="none"/></pattern>';
+      '<image href="' + _rbase + 'processed/fan-silk.webp" x="0" y="0" width="251" height="251" preserveAspectRatio="none"/></pattern>';
     defs += '<pattern id="tjPaperFiber" patternUnits="userSpaceOnUse" width="150" height="150">' +
-      '<image href="assets/processed/paper-fiber.webp" x="0" y="0" width="150" height="150" preserveAspectRatio="none"/></pattern>';
+      '<image href="' + _rbase + 'processed/paper-fiber.webp" x="0" y="0" width="150" height="150" preserveAspectRatio="none"/></pattern>';
     /* 折痕明暗：沿纸面横向、相邻扇页方向相反（指令 §4.1-3），幅度克制 */
     var RM = (RP_IN + RP_OUT) / 2;
     var gA = pt(RM, -HALF), gB = pt(RM, HALF);
@@ -211,7 +216,7 @@
     RIB_ANGLES.forEach(function (deg, k) {
       defs += '<pattern id="tjRib' + k + '" patternUnits="userSpaceOnUse" width="44" height="160"' +
         ' patternTransform="rotate(' + f(deg) + ')">' +
-        '<image href="assets/processed/wood-rib-dark.jpg" x="0" y="0" width="44" height="160" preserveAspectRatio="none"/>' +
+        '<image href="' + _rbase + 'processed/wood-rib-dark.jpg" x="0" y="0" width="44" height="160" preserveAspectRatio="none"/>' +
         '</pattern>';
     });
     /* 铆钉与投影（一次静态烘焙，不做动画滤镜） */
