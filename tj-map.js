@@ -827,7 +827,7 @@
     var td = (state.棠郡 && state.棠郡.时地) || {};
     var h = hourOf(td.时辰);
     if (h == null) return;
-    UI.autoNight = (h >= 19 || h < 5);
+    UI.autoNight = (h >= 21 || h < 5);   /* 2026-10-11：酉时(19) 起算夜太早，开场多是酉时→地图常黑。改戌时(21) 起。 */
     if (UI.nightMode === 'auto') UI.applyNight();
   }
 
