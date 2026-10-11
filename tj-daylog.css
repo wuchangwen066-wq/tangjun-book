@@ -1,0 +1,178 @@
+/* ==================================================================
+   棠郡 · 每日竖条日志（v0）样式
+   ------------------------------------------------------------------
+   时页：竖条沿乌丝栏错落垂挂，滚动体藏滚动条；右缘两枚书签（回顶/回今），
+   到边即淡出。令页：轮盘下横向"日列"窄带，点格展开该日浓缩；
+   节令札展开时整带让位（opacity+max-height 收起），不与笺争空间。
+================================================================== */
+
+/* ---------- 时页：滚动区 ---------- */
+.daylog {
+  width: 100%;
+  margin-top: 2px;
+  /* 高度随页内剩余空间：桌面约 200px，窄屏更矮 */
+  height: clamp(140px, 30vh, 220px);
+  position: relative;
+}
+.daylog-scroll {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: none;                 /* 滚动条隐藏（作者 2026-10-05 同传页） */
+  cursor: default;
+  /* 上下各留一道淡入淡出，提示"这一卷还有"——用 mask，不发光 */
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent);
+}
+.daylog-scroll::-webkit-scrollbar { width: 0; height: 0; }
+.daylog-canvas { position: relative; width: 100%; }
+
+/* 竖条：一条＝一日。挂在乌丝栏列线上，顶上一枚纸钉 */
+.dl-strip {
+  position: absolute;
+  width: 26px;
+  padding: 7px 0 5px;
+  background: linear-gradient(178deg, rgba(238, 228, 206, .92), rgba(222, 210, 184, .92));
+  box-shadow: 0 1px 3px rgba(48, 36, 20, .22), inset 0 0 8px rgba(120, 95, 60, .10);
+  border: 1px solid rgba(31, 27, 22, .14);
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.dl-nail {
+  position: absolute;
+  top: 2px; left: 50%;
+  width: 4px; height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: rgba(31, 27, 22, .45);
+}
+.dl-strip { transform: rotate(0.6deg); }          /* 挂着的东西总有点歪 */
+.dl-strip:nth-child(2n) { transform: rotate(-0.7deg); }
+.dl-shichen {
+  font-family: var(--font-song);
+  font-size: 10px;
+  color: var(--zhu-text);
+  opacity: .85;
+  line-height: 1;
+}
+.dl-word {
+  font-family: var(--font-kai);
+  font-size: 15px;
+  color: var(--ink);
+  line-height: 23px;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+}
+
+/* 书签（回顶/回今）：右缘两枚小签，到边即淡出 */
+.dl-bookmark {
+  position: absolute;
+  right: 2px;
+  z-index: 3;
+  width: 20px;
+  padding: 7px 0 9px;
+  border: 0;
+  cursor: pointer;
+  writing-mode: vertical-rl;
+  font-family: var(--font-kai);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #ecdfc6;
+  background: linear-gradient(150deg, rgba(150, 44, 36, .88), rgba(96, 26, 22, .92));
+  box-shadow: inset 0 0 0 1px rgba(184, 149, 90, .28), 0 2px 6px rgba(0, 0, 0, .30);
+  transition: opacity 260ms var(--ease), transform 220ms var(--ease);
+}
+.dl-bookmark:hover { transform: translateX(-2px); }
+.dl-bookmark-top { top: 0; }
+.dl-bookmark-end { bottom: 0; }
+.daylog-scroll.at-top .dl-bookmark-top { opacity: 0; pointer-events: none; }
+.daylog-scroll.at-end .dl-bookmark-end { opacity: 0; pointer-events: none; }
+.daylog-scroll:not(.at-top) .dl-bookmark-top { opacity: 1; }
+.daylog-scroll:not(.at-end) .dl-bookmark-end { opacity: 1; }
+.dl-bookmark:focus-visible { outline: 2px solid var(--nijin); outline-offset: 2px; }
+
+/* ---------- 令页：横向日列窄带 ---------- */
+.daylist {
+  width: 100%;
+  margin-top: 10px;
+  max-height: 120px;
+  overflow: hidden;
+  transition: max-height var(--dur-slip, 640ms) var(--ease),
+              opacity var(--dur-fade, 520ms) var(--ease),
+              margin-top var(--dur-slip, 640ms) var(--ease);
+}
+/* 节令札展开时整带让位（同笺的收放语言，不与 222px 争空间） */
+.ling-body.has-slip .daylist {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+}
+.dl-band {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: stretch;
+  padding: 2px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.dl-band::-webkit-scrollbar { height: 0; }
+.dl-cell {
+  flex: 0 0 auto;
+  width: 46px;
+  padding: 5px 0 7px;
+  border: 1px solid rgba(31, 27, 22, .16);
+  background: linear-gradient(178deg, rgba(238, 228, 206, .9), rgba(224, 213, 188, .9));
+  box-shadow: inset 0 0 8px rgba(120, 95, 60, .10), 0 1px 2px rgba(48, 36, 20, .16);
+  border-radius: 2px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-kai);
+  transition: transform 200ms var(--ease), filter 200ms var(--ease), box-shadow 200ms var(--ease);
+}
+.dl-cell:hover { transform: translateY(-3px); filter: brightness(1.04); }
+.dl-cell:focus-visible { outline: 2px solid var(--nijin); outline-offset: 2px; }
+.dl-cell.is-open {
+  border-color: rgba(140, 52, 44, .5);
+  box-shadow: inset 0 0 0 1px rgba(140, 52, 44, .35), 0 2px 6px rgba(48, 36, 20, .22);
+}
+.dl-cell-date {
+  font-size: 11px;
+  color: var(--ink-2);
+  letter-spacing: 1px;
+  line-height: 1.2;
+}
+.dl-cell-word {
+  font-family: var(--font-brush);
+  font-size: 16px;
+  color: var(--ink);
+  line-height: 1.1;
+}
+.dl-cell.is-archive { opacity: .78; }
+.dl-cell.is-archive .dl-cell-word { font-size: 13px; color: var(--ink-2); }
+
+/* 展开的该日浓缩：一行楷体小记 */
+.dl-summary {
+  margin-top: 8px;
+  text-align: center;
+  font-family: var(--font-kai);
+  font-size: 14px;
+  color: var(--ink);
+  letter-spacing: .5px;
+}
+.dl-summary[hidden] { display: none; }
+
+/* ---------- 窄屏 ---------- */
+@media (max-width: 640px) {
+  .daylog { height: 170px; }
+  .dl-strip { width: 24px; }
+  .dl-cell { width: 42px; }
+}

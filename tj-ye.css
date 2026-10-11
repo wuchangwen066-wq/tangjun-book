@@ -1,0 +1,510 @@
+/* ==================================================================
+   棠郡 · 「业」页样式（第 5 页，2026-10-05）
+   ------------------------------------------------------------------
+   未定态：四枚名帖（择业入口）＋一枚"先不动"；已定态：槽位行（沿用 .rows）。
+   右页底部一排"试看"名帖（v0 假数据切身份）。全部沿用册页美术语言，不发光。
+================================================================== */
+
+/* ---------- 左页 ---------- */
+.ye-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ye-lead {
+  font-family: var(--font-kai);
+  font-size: 15px;
+  color: var(--ink-2);
+  letter-spacing: .5px;
+}
+/* ---- v2.1 修五 5.5：择业栏题跋（楷体小字，淡墨，不抢选项视觉） ---- */
+.ye-inscript {
+  margin: 6px 0 10px;
+  font-family: var(--font-kai);
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: var(--ink-3);
+  text-align: center;
+}
+.ye-inscript::before { content: "—— "; }
+.ye-inscript::after { content: " ——"; }
+/* ---- v2.1 修五 5.0：前置署名条（一行轻结构，只 S0 摊开） ---- */
+.ye-sign {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed rgba(31, 27, 22, .18);
+}
+.ye-sign-label {
+  font-family: var(--font-song);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: rgba(31, 27, 22, .75);
+}
+.ye-sign-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px dashed rgba(31, 27, 22, .34);
+  background: none;
+  font-family: var(--font-kai);
+  font-size: 13px;
+  color: var(--ink);
+  letter-spacing: 1px;
+  padding: 2px 2px 4px;
+  outline: none;
+}
+.ye-sign-input:focus { border-bottom-color: rgba(150, 44, 36, .75); }
+.ye-sign-done {
+  font-family: var(--font-kai);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  letter-spacing: .5px;
+}
+.ye-entries {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.ye-entry {
+  border: 1px solid rgba(31, 27, 22, .18);
+  background: linear-gradient(178deg, rgba(238, 228, 206, .9), rgba(224, 213, 188, .9));
+  box-shadow: inset 0 0 8px rgba(120, 95, 60, .10), 0 1px 2px rgba(48, 36, 20, .16);
+  border-radius: 2px;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-kai);
+  transition: transform 200ms var(--ease), filter 200ms var(--ease), box-shadow 200ms var(--ease);
+}
+.ye-entry:hover { transform: translateY(-2px); filter: brightness(1.04); }
+.ye-entry:focus-visible { outline: 2px solid var(--nijin); outline-offset: 2px; }
+.ye-entry.is-picked { animation: yePick 300ms ease-out; }
+@keyframes yePick {
+  0% { box-shadow: inset 0 0 0 1px rgba(140, 52, 44, .5), 0 1px 2px rgba(48, 36, 20, .16); }
+  40% { box-shadow: inset 0 0 0 2px rgba(140, 52, 44, .55), 0 2px 8px rgba(48, 36, 20, .26); }
+  100% { box-shadow: inset 0 0 8px rgba(120, 95, 60, .10), 0 1px 2px rgba(48, 36, 20, .16); }
+}
+.ye-entry-name {
+  display: block;
+  font-family: var(--font-brush);
+  font-size: 21px;
+  color: var(--ink);
+  line-height: 1.15;
+}
+/* 2026-10-08 换字体：Ma Shan Zheng 源字体的「修」字形天生细瘦（PIL 直渲源字体实锤，
+   不是缺字也不是回退），与商/仕/江湖的浓毛笔风不齐 —— 单字换楷体，观感归队。 */
+.ye-entry[data-ye="修"] .ye-entry-name {
+  font-family: var(--font-kai);
+}
+.ye-entry-copy {
+  display: block;
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+.ye-hold {
+  align-self: flex-start;
+  border: 0;
+  background: none;
+  font-family: var(--font-kai);
+  font-size: 13px;
+  color: var(--ink-2);
+  letter-spacing: 1px;
+  cursor: pointer;
+  border-bottom: 1px dashed rgba(31, 27, 22, .34);
+  padding: 2px 2px 4px;
+  transition: color 200ms var(--ease), border-color 200ms var(--ease);
+}
+.ye-hold:hover { color: var(--ink); border-color: rgba(140, 52, 44, .55); }
+.ye-hold:focus-visible { outline: 2px solid var(--nijin); outline-offset: 2px; }
+.ye-hold.is-picked { animation: yePick 300ms ease-out; }
+
+/* 行迹（小签）标题与容器的接缝 */
+.ye-line-head { margin-top: 6px; }
+#daylogYe { min-height: 0; }
+
+/* ---------- 右页：槽位面板 ----------
+   v2.1 修一（2026-10-05）：名目区曾在此另起一套（宋体小字 .k、楷体 .v、
+   border-top 分隔线），与容器 .rows 的横线界行（repeating-gradient，行高
+   = --rule-gap 字落线上）打架，造成贴线/错位/字体不一。现整块删除，
+   #yeSlots 与 #yeMoney（现银）完全同走 tj-pages.css 的 .rows/.row 体系。 */
+
+/* ---------- 试看名帖（v0 假数据切换） ---------- */
+.ye-switch {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(31, 27, 22, .12);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ye-switch-label {
+  font-family: var(--font-song);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 2px;
+  margin-right: 2px;
+}
+.ye-pip {
+  width: 40px;
+  padding: 4px 0 5px;
+  border: 1px solid rgba(31, 27, 22, .20);
+  background: linear-gradient(178deg, rgba(238, 228, 206, .9), rgba(224, 213, 188, .9));
+  font-family: var(--font-kai);
+  font-size: 12px;
+  color: var(--ink);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: transform 180ms var(--ease), filter 180ms var(--ease), box-shadow 180ms var(--ease);
+}
+.ye-pip:hover { transform: translateY(-2px); filter: brightness(1.05); }
+.ye-pip:focus-visible { outline: 2px solid var(--nijin); outline-offset: 2px; }
+.ye-pip.is-on {
+  background: linear-gradient(150deg, rgba(150, 44, 36, .88), rgba(96, 26, 22, .92));
+  color: #ecdfc6;
+  box-shadow: inset 0 0 0 1px rgba(184, 149, 90, .30);
+}
+
+/* 已定态 13 行可能略超页高：右页正文同样走隐藏滚动条的滚动 */
+.page.page-right[data-tab="业"] .body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  cursor: default;
+}
+.page.page-right[data-tab="业"] .body::-webkit-scrollbar { width: 0; height: 0; }
+
+/* 左页同款（=「人·传」栾令采小传那套，2026-10-05 作者：择业太长显示不全）：
+   署名条+题跋+五卡、落笔表单、任务+行迹，都可能超页高 —— 只开滚动，滚动条收掉。
+   与传页的两处刻意差异：① 不压 .body * 的光标 —— 择业卡/书签/按钮保留 pointer 反馈；
+   ② 不设 caret-color:transparent —— 署名/名号输入框要见光标。
+   另外 ye-body 是 flex 列，子项不许先被压缩（flex-shrink 会压内容而不是触发滚动），
+   一律按内容高度排。 */
+.page.page-left[data-tab="业"] .body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  cursor: default;
+}
+.page.page-left[data-tab="业"] .body::-webkit-scrollbar { width: 0; height: 0; }
+.page.page-left[data-tab="业"] .body:focus,
+.page.page-left[data-tab="业"] .body:focus-visible { outline: none; }
+.page.page-left[data-tab="业"] .body.ye-body > * { flex: 0 0 auto; }
+
+/* ---------- 槽名列对齐（2026-10-05 作者指出不对齐）----------
+   v2.1 修一：字体/行高/横线整块撤下，全走 tj-pages.css 的 .rows/.row 体系
+   （=「现银」同款）。仅保留一条宽度参数——名目皮名最长 4 字，k 统一撑到
+   4.5em 使值列统一起点（上轮验收过的对齐效果，不回退）。 */
+#yeSlots .k { min-width: 4.5em; }
+
+/* 「已立身」小印（真身份才亮） */
+.ye-chosen-seal {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 3px 7px 4px;
+  vertical-align: 4px;
+  font-family: var(--font-song);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #ecdfc6;
+  background: linear-gradient(150deg, rgba(150, 44, 36, .88), rgba(96, 26, 22, .92));
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(184, 149, 90, .30), 0 1px 3px rgba(0,0,0,.25);
+}
+
+/* ================= v2（2026-10-05，ye_page_v2_spec v2.1） ================= */
+
+/* ---- 名帖状态：已选=墨黑实心（拍板4），锁定=淡而不掩 ---- */
+.ye-entry.is-chosen {
+  background: linear-gradient(160deg, #2e271e, #1f1a14);
+  border-color: rgba(31, 27, 22, .9);
+  box-shadow: inset 0 0 0 1px rgba(236, 223, 198, .14), 0 2px 6px rgba(0, 0, 0, .28);
+}
+.ye-entry.is-chosen .ye-entry-name { color: #ecdfc6; text-shadow: none; }
+.ye-entry.is-chosen .ye-entry-copy { color: rgba(236, 223, 198, .78); }
+.ye-entry.is-locked { opacity: .38; cursor: not-allowed; }
+
+/* ---- 兼理开关（2026-10-07 作者加）：择业页里的精力声明条——
+    不是第七路路径，视觉上是 chip 列表下的「附言」；开态整条朱调（与 chosen 同族的暖纸底反转） ---- */
+.ye-jianli {
+  display: flex; align-items: baseline; gap: 8px; width: calc(100% - 16px);
+  margin: 6px 8px 0; padding: 8px 11px 7px;
+  text-align: left; cursor: pointer;
+  font-family: var(--font-kai);
+  border: 1px solid rgba(184, 149, 90, .42); border-radius: 2px;
+  background: linear-gradient(178deg, rgba(255, 250, 238, .55), rgba(248, 238, 218, .48));
+  box-shadow: inset 0 0 8px rgba(120, 95, 60, .08), 0 1px 2px rgba(48, 36, 20, .12);
+  transition: border-color 200ms var(--ease), box-shadow 200ms var(--ease);
+}
+.ye-jianli .yj-mark {
+  flex: 0 0 auto; align-self: center;
+  font-family: var(--font-song); font-size: 10.5px; letter-spacing: 1.5px;
+  color: rgba(31, 27, 22, .55);
+  border: 1px solid rgba(31, 27, 22, .3); border-radius: 2px;
+  padding: 1px 5px 2px;
+}
+.ye-jianli .yj-copy { flex: 1 1 auto; font-size: 12px; letter-spacing: 1px; color: rgba(43, 36, 27, .88); }
+.ye-jianli:hover { border-color: rgba(150, 44, 36, .45); }
+.ye-jianli.is-on {
+  border-color: rgba(150, 44, 36, .6);
+  box-shadow: inset 0 0 8px rgba(150, 44, 36, .10), 0 1px 2px rgba(48, 36, 20, .16);
+}
+.ye-jianli.is-on .yj-mark {
+  color: #ecdfc6; background: rgba(150, 44, 36, .88);
+  border-color: transparent;
+}
+.ye-jianli.is-on .yj-copy { color: #962c24; font-weight: 700; }
+.ye-entry.is-locked .ye-entry-name { color: rgba(31, 27, 22, .55); }
+/* v2.1 修四：S2 单主业时已选卡 = is-chosen + is-locked（不可再点），
+   但「已定」不是「弃路」——保持与 S3 双选一致的全亮墨黑卡（图3 形态），
+   仅以 cursor 示不可点；变暗留给真正未选的锁定卡。 */
+.ye-entry.is-chosen.is-locked { opacity: 1; cursor: default; }
+.ye-entry.is-chosen.is-locked .ye-entry-name { color: #ecdfc6; }
+.ye-entry-cancel {
+  position: absolute; top: 6px; right: 8px;
+  font-size: 11px; letter-spacing: 2px;
+  color: #ecdfc6; background: rgba(150, 44, 36, .85);
+  padding: 2px 6px 3px; border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(184, 149, 90, .3);
+}
+.ye-entries .ye-entry { position: relative; }
+
+/* ---- 落笔表单 ---- */
+.ye-form {
+  margin: 10px 0 4px; padding: 12px 14px 10px;
+  border: 1px solid rgba(31, 27, 22, .35);
+  border-radius: 3px;
+  background: rgba(255, 252, 244, .5);
+  box-shadow: inset 0 0 0 1px rgba(184, 149, 90, .18);
+}
+.ye-form-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.ye-form-title { font-family: var(--font-song); font-size: 15px; letter-spacing: 3px; color: #2b241b; }
+.ye-form-mode { font-size: 11px; color: rgba(150, 44, 36, .9); letter-spacing: 2px; }
+.ye-form-sub { font-size: 12px; color: rgba(31, 27, 22, .72); letter-spacing: 1px; margin-bottom: 6px; }
+.ye-opts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.ye-opt {
+  font-family: var(--font-song); font-size: 12px; letter-spacing: 1px;
+  color: #2b241b; background: rgba(255, 252, 244, .65);
+  border: 1px solid rgba(31, 27, 22, .4); border-radius: 2px;
+  padding: 3px 9px 4px; cursor: pointer;
+}
+.ye-opt:hover { border-color: rgba(31, 27, 22, .75); }
+.ye-opt.is-on {
+  background: #2b241b; color: #ecdfc6; border-color: #2b241b;
+  box-shadow: inset 0 0 0 1px rgba(236, 223, 198, .16);
+}
+/* v2.1 修五 5.3：初始化方式行（「起法」二选；hover 简介走 title） */
+.ye-form-init {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 10px;
+}
+.ye-form-init .ye-form-label { margin-right: 2px; }
+.ye-form-name { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.ye-form-label { font-size: 12px; letter-spacing: 2px; color: rgba(31, 27, 22, .75); }
+.ye-form-input {
+  flex: 1 1 auto; min-width: 0;
+  font-family: var(--font-song); font-size: 13px; color: #2b241b;
+  background: transparent; border: none; border-bottom: 1px solid rgba(31, 27, 22, .45);
+  padding: 2px 2px 3px; outline: none;
+}
+.ye-form-input:focus { border-bottom-color: rgba(150, 44, 36, .75); }
+.ye-form-hint { font-size: 10px; color: rgba(31, 27, 22, .5); white-space: nowrap; }
+.ye-form-actions { display: flex; gap: 10px; }
+.ye-btn {
+  font-family: var(--font-song); font-size: 13px; letter-spacing: 4px; text-indent: 4px;
+  padding: 5px 16px 6px; border-radius: 2px; cursor: pointer;
+}
+.ye-btn-ink {
+  color: #ecdfc6; background: linear-gradient(160deg, #2e271e, #1f1a14);
+  border: 1px solid #1f1a14;
+  box-shadow: inset 0 0 0 1px rgba(236, 223, 198, .14), 0 1px 4px rgba(0, 0, 0, .25);
+}
+.ye-btn-ghost {
+  color: rgba(31, 27, 22, .78); background: transparent;
+  border: 1px solid rgba(31, 27, 22, .4);
+}
+.ye-btn-ghost:hover { border-color: rgba(31, 27, 22, .7); }
+.ye-form-note { margin-top: 8px; font-size: 11px; color: rgba(150, 44, 36, .85); letter-spacing: 1px; min-height: 1em; }
+
+/* ---- 条带：闲身草稿 / 副业升主 ---- */
+.ye-s1bar, .ye-promo {
+  margin: 10px 0 4px; padding: 8px 12px;
+  font-size: 12px; letter-spacing: 1px; color: rgba(31, 27, 22, .8);
+  border-left: 2px solid rgba(150, 44, 36, .65);
+  background: rgba(150, 44, 36, .06);
+}
+.ye-linkbtn {
+  font-family: inherit; font-size: inherit; letter-spacing: inherit;
+  color: rgba(150, 44, 36, .95); background: none; border: none;
+  border-bottom: 1px dashed rgba(150, 44, 36, .6);
+  padding: 0 1px 1px; cursor: pointer;
+}
+
+/* ---- 任务卡（急=朱砂点缀；了结/逾期=淡出） ---- */
+.ye-task { margin: 2px 0 6px; }
+.ye-idle { font-size: 12px; letter-spacing: 4px; color: rgba(31, 27, 22, .45); padding: 6px 0 2px; }
+.ye-taskcard {
+  position: relative;
+  padding: 10px 12px 9px; margin-bottom: 4px;
+  border: 1px solid rgba(31, 27, 22, .35); border-radius: 3px;
+  background: rgba(255, 252, 244, .55);
+  box-shadow: inset 0 0 0 1px rgba(184, 149, 90, .16);
+  transition: opacity .5s ease;
+  cursor: default;
+}
+.ye-taskcard.is-urgent { border-color: rgba(150, 44, 36, .65); }
+.ye-taskcard.is-urgent::before {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 3px;
+  background: linear-gradient(rgba(150, 44, 36, .85), rgba(150, 44, 36, .35));
+  border-radius: 3px 0 0 3px;
+}
+.ye-taskcard.is-faded { opacity: .45; }
+.tc-top { display: flex; align-items: baseline; gap: 8px; }
+.tc-type {
+  flex: 0 0 auto; font-family: var(--font-song); font-size: 11px; letter-spacing: 1px;
+  color: #ecdfc6; background: rgba(31, 27, 22, .78);
+  padding: 1px 6px 2px; border-radius: 2px;
+}
+.is-urgent .tc-type { background: rgba(150, 44, 36, .9); }
+.tc-title {
+  flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--font-song); font-size: 14px; letter-spacing: 1px; color: #2b241b;
+}
+.tc-rem { flex: 0 0 auto; font-size: 12px; letter-spacing: 1px; color: rgba(150, 44, 36, .9); }
+.tc-line { margin-top: 5px; font-size: 12px; color: rgba(31, 27, 22, .68); letter-spacing: .5px; }
+.tc-cons { color: rgba(150, 44, 36, .78); }
+
+/* ---- 花笺（探花郎 · 花讯；花榜文体，雅词俗用）----
+   与任务卡同族（纸面小签），但用朱线点边——花榜是金榜的戏仿，
+   朱是榜色；「看惯了」作小朱记。三行：折花（次数）/ 风流 / 名声。 */
+.ye-hua {
+  margin: 2px 0 8px; padding: 8px 12px 7px;
+  border: 1px solid rgba(150, 44, 36, .32); border-radius: 3px;
+  background: linear-gradient(178deg, rgba(255, 250, 238, .58), rgba(248, 238, 218, .52));
+  box-shadow: inset 0 0 0 1px rgba(184, 149, 90, .14);
+}
+.hua-head {
+  display: flex; align-items: baseline; gap: 8px;
+  margin-bottom: 3px;
+}
+.hua-title {
+  font-family: var(--font-brush); font-size: 16px; line-height: 1.2;
+  color: rgba(150, 44, 36, .95); letter-spacing: 3px;
+}
+.hua-row {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 3px 0 2px;
+  font-size: 12px; letter-spacing: 1px;
+}
+.hua-row + .hua-row { border-top: 1px dashed rgba(31, 27, 22, .16); }
+.hua-k {
+  flex: 0 0 auto;
+  font-family: var(--font-song); font-size: 11.5px; letter-spacing: 2px;
+  color: rgba(31, 27, 22, .6);
+}
+.hua-v {
+  flex: 1 1 auto; min-width: 0;
+  font-family: var(--font-kai); font-size: 12.5px; color: #2b241b;
+}
+.hua-seen {
+  display: inline-block; margin-left: 4px; padding: 0 5px 1px;
+  font-family: var(--font-song); font-size: 10.5px; letter-spacing: 1px;
+  color: #ecdfc6; background: rgba(150, 44, 36, .88); border-radius: 2px;
+  vertical-align: 1px;
+}
+.hua-qx .hua-v { color: rgba(31, 27, 22, .82); }
+/* 摘樱行：整行朱字（作者 2026-10-07 加；樱色即工程正朱，与花笺题字同族） */
+.hua-sakura .hua-k { color: rgba(150, 44, 36, .88); }
+.hua-sakura .hua-v { color: #962c24; font-weight: 700; }
+.hua-note {
+  margin-top: 4px; padding-top: 3px;
+  border-top: 1px dashed rgba(150, 44, 36, .3);
+  font-size: 11px; letter-spacing: .5px; color: rgba(150, 44, 36, .82);
+}
+
+/* ---- 择业书签（S2/S3 回择业页） ---- */
+.ye-bookmark {
+  display: inline-block; margin: 2px 0 6px;
+  font-family: var(--font-song); font-size: 12px; letter-spacing: 2px;
+  color: rgba(31, 27, 22, .72); background: transparent;
+  border: none; border-bottom: 1px dashed rgba(31, 27, 22, .4);
+  padding: 0 2px 2px; cursor: pointer;
+}
+.ye-bookmark:hover { color: rgba(150, 44, 36, .9); border-bottom-color: rgba(150, 44, 36, .55); }
+
+/* ---- 右页：空册 / 景况徽 / 钱 / 副业折叠 ---- */
+.ye-blank { display: flex; align-items: center; justify-content: center; min-height: 9em; }
+.ye-blank-line {
+  font-family: var(--font-song); font-size: 14px; letter-spacing: 4px; line-height: 2.4;
+  color: rgba(31, 27, 22, .42); text-align: center;
+}
+.ye-jing {
+  display: inline-block; margin-left: 10px; padding: 3px 8px 4px;
+  font-family: var(--font-song); font-size: 11px; letter-spacing: 2px;
+  color: #2b241b; background: rgba(184, 149, 90, .16);
+  border-radius: 2px; vertical-align: 4px;
+  box-shadow: inset 0 0 0 1px rgba(31, 27, 22, .22);
+}
+/* 平稳（v2.1 修二）：朱红底白字——朱红与书签/朱印同一色值（不新增色号），
+   字体用「时/人/令」书签的毛笔字体；徽尺寸不变。濒危保持纯色朱，与之区分。 */
+.ye-jing.is-平 {
+  color: #e8dcc6;
+  background: linear-gradient(150deg, rgba(150, 44, 36, .88), rgba(96, 26, 22, .92));
+  box-shadow: inset 0 0 0 1px rgba(184, 149, 90, .3);
+  font-family: var(--font-brush);
+  font-size: 12px;
+}
+.ye-jing.is-危 { color: #ecdfc6; background: rgba(150, 44, 36, .88); box-shadow: inset 0 0 0 1px rgba(184, 149, 90, .3); }
+.ye-jing.is-终 { color: rgba(236, 223, 198, .75); background: rgba(31, 27, 22, .6); }
+.ye-money-head { margin-top: 12px; }
+.ye-sub { margin-top: 12px; }
+.ye-sub-head {
+  display: block; width: 100%; text-align: left;
+  font-family: var(--font-song); font-size: 12px; letter-spacing: 2px;
+  color: rgba(31, 27, 22, .72); background: rgba(184, 149, 90, .1);
+  border: none; border-left: 2px solid rgba(31, 27, 22, .4);
+  padding: 6px 10px; cursor: pointer;
+}
+.ye-sub-head:hover { color: #2b241b; }
+.ye-sub-rows { margin-top: 4px; }
+
+/* ---- 工房（dev 抽屉；?dev=1 或 localStorage['tj-dev']='1' 才现身） ---- */
+.ye-devtab {
+  position: absolute; right: 10px; bottom: 8px; z-index: 5;
+  font-size: 10px; letter-spacing: 2px;
+  color: rgba(31, 27, 22, .5); background: rgba(255, 252, 244, .7);
+  border: 1px dashed rgba(31, 27, 22, .35); border-radius: 2px;
+  padding: 2px 7px 3px; cursor: pointer;
+}
+.ye-dev {
+  margin-top: 14px; padding: 10px 12px;
+  border: 1px dashed rgba(150, 44, 36, .5); border-radius: 3px;
+  background: rgba(150, 44, 36, .05);
+  font-size: 12px; color: rgba(31, 27, 22, .75);
+}
+.ye-dev-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; letter-spacing: 2px; color: rgba(150, 44, 36, .9); }
+.ye-dev-x { font-size: 11px; background: none; border: none; color: rgba(31, 27, 22, .6); cursor: pointer; }
+.ye-dev-row { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-bottom: 6px; }
+.ye-dev-row > span { flex: 0 0 3em; font-size: 11px; letter-spacing: 2px; color: rgba(31, 27, 22, .55); }
+.ye-dev-row button {
+  font-family: var(--font-song); font-size: 11px; letter-spacing: 1px;
+  color: #2b241b; background: rgba(255, 252, 244, .7);
+  border: 1px solid rgba(31, 27, 22, .35); border-radius: 2px;
+  padding: 2px 8px 3px; cursor: pointer;
+}
+.ye-dev-row button:hover { border-color: rgba(150, 44, 36, .6); color: rgba(150, 44, 36, .9); }
+.ye-dev-row b { min-width: 2em; text-align: center; }
+.ye-dev .ye-pip {
+  font-family: var(--font-song); font-size: 11px;
+  color: #2b241b; background: rgba(255, 252, 244, .7);
+  border: 1px solid rgba(31, 27, 22, .35); border-radius: 2px;
+  padding: 2px 8px 3px; cursor: pointer;
+}
+.ye-dev .ye-pip.is-on { background: #2b241b; color: #ecdfc6; border-color: #2b241b; }

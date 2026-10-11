@@ -1,0 +1,245 @@
+/* ==================================================================
+   棠郡状态栏 · 材质层（「一册」）
+   ------------------------------------------------------------------
+   只管材质：桌的暗漆木、纸的纤维与污、灯晕与暗角、书口层叠、
+   书脊折痕、红绳红穗、朱印、墨痕线、墨漫。
+   本层只读变量、不含版式；版式在 tj-layout.css / tj-pages.css。
+
+   纪律（工程指令 §0.3）：纹理是底噪不是图 —— 一律压到不抢正文，
+   正文压在纸上必须仍然清晰（纸明度高、墨焦黑，对比约 11:1）。
+================================================================== */
+
+/* ---------- 桌：暗漆木 + 暗角 ---------- */
+.desk {
+  position: absolute;
+  inset: 0;
+  background-color: var(--desk-0);
+  background-image: url("desk-wood.webp");
+  background-size: 620px 620px;
+  background-blend-mode: multiply;
+}
+/* 木纹在 multiply 下偏抢，压一层暗漆 */
+.desk::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(160deg, rgba(29, 24, 18, .58), rgba(10, 8, 6, .90));
+}
+.desk::after {   /* 桌沿暗角 */
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(120% 110% at var(--lx) var(--ly), rgba(66, 46, 26, .20), transparent 46%),
+              radial-gradient(125% 125% at 50% 50%, transparent 38%, rgba(0, 0, 0, .74) 100%);
+}
+
+/* ---------- 灯：灯晕 + 暗角（指令 §5） ---------- */
+.lamp { position: absolute; inset: 0; pointer-events: none; z-index: 40; }
+.lamp::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(60% 55% at var(--lx) var(--ly), var(--lamp-color), transparent 62%);
+  mix-blend-mode: screen;
+  animation: lamp-sway 5.4s var(--ease) infinite;
+}
+.lamp::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(120% 120% at 50% 50%, transparent 40%, rgba(0, 0, 0, var(--dark)) 100%);
+}
+@keyframes lamp-sway {
+  0%, 100% { transform: translate(0, 0) scale(1);      opacity: .95; }
+  35%      { transform: translate(.6%, .4%) scale(1.02); opacity: 1; }
+  68%      { transform: translate(-.4%, .2%) scale(.99); opacity: .92; }
+}
+
+/* ---------- 纸 ---------- */
+.paper-surface {
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(120% 90% at 30% 20%, rgba(255, 248, 230, .50), transparent 60%),
+    radial-gradient(100% 100% at 80% 92%, rgba(120, 95, 60, .18), transparent 55%),
+    url("paper-fiber.webp");
+  background-size: auto, auto, 340px 340px;
+  background-blend-mode: soft-light, multiply, soft-light;
+  box-shadow:
+    inset 0 0 60px rgba(90, 70, 40, .30),
+    inset 0 0 0 1px rgba(120, 98, 66, .30);
+}
+/* 时辰的纸色偏移 + 夜里的沉暗：随 --dark / --glow 变，只改色不动版式 */
+.paper-tint {
+  position: absolute; inset: 0; pointer-events: none;
+  /* 外圈沉入暗处：夜里只有灯照到的方向还亮着 */
+  background: radial-gradient(125% 125% at var(--lx) var(--ly),
+    var(--paper-tint, transparent) 0%,
+    transparent 34%,
+    rgba(22, 15, 9, calc(var(--dark) * 0.78)) 100%);
+  mix-blend-mode: multiply;
+}
+/* 灯照在纸上的那一小圈暖光（带极轻的摇曳，与灯晕同源） */
+.paper-tint::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(58% 54% at var(--lx) var(--ly),
+    rgba(255, 214, 140, calc(var(--glow) * 0.55)), transparent 62%);
+  mix-blend-mode: soft-light;
+  animation: paper-flicker 4.6s var(--ease) infinite;
+}
+@keyframes paper-flicker {
+  0%, 100% { opacity: .92; }
+  41%      { opacity: 1; }
+  72%      { opacity: .86; }
+}
+
+/* ---------- 书口：层叠的纸边 ---------- */
+.book-edge {
+  position: absolute;
+  top: 7px; bottom: 7px;
+  width: 13px;
+  background: repeating-linear-gradient(
+    180deg,
+    var(--paper-hi) 0 2px,
+    var(--paper-lo) 2px 3px,
+    var(--paper-edge) 3px 4px
+  );
+  opacity: .88;
+  filter: brightness(.84);
+}
+.book-edge.is-left  { left: -12px;  border-radius: 2px 0 0 2px; box-shadow: -2px 0 6px rgba(0, 0, 0, .42); }
+.book-edge.is-right { right: -12px; border-radius: 0 2px 2px 0; box-shadow:  2px 0 7px rgba(0, 0, 0, .48); }
+
+/* ---------- 书脊：中缝折痕与两侧凹陷 ----------
+   z-index 高于翻页的叶子（30）：掀页时页是从装订沟里出来的，
+   折痕阴影理应压在翻动书页的根部 —— 否则往回翻落定后叶子盖着中轴，
+   撤叶瞬间中轴突然「弹」回来（作者对版指出）。 */
+.spine {
+  position: absolute;
+  top: 0; bottom: 0; left: 50%;
+  width: var(--spine-w, 26px);
+  transform: translateX(-50%);
+  background: linear-gradient(90deg,
+    rgba(0, 0, 0, .42), rgba(0, 0, 0, .16) 42%,
+    rgba(255, 250, 235, .12) 50%, rgba(0, 0, 0, .18) 58%, rgba(0, 0, 0, .44));
+  pointer-events: none;
+  z-index: 35;
+}
+/* 装订沟里一线泥金（哑光）：原来那道光偏冷、像塑料反光；换成一线暖金，
+   纸与乌木之间有个"装帧"的交代。金按 DESIGN §1 只上细线 —— 面积占比 <0.05% */
+.spine::after {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg,
+    rgba(184, 149, 90, 0) 0%, rgba(184, 149, 90, .40) 14%,
+    rgba(184, 149, 90, .40) 86%, rgba(184, 149, 90, 0) 100%);
+}
+/* 美术精修（2026-10-06）：装订沟两侧各一线受光 —— 折痕压下去，纸面弹起来 */
+.spine::before {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: -16px; right: -16px;
+  pointer-events: none;
+  background: linear-gradient(90deg,
+    transparent 0 36%, rgba(255, 244, 214, .08) 43%, transparent 49%,
+    transparent 51%, rgba(255, 244, 214, .06) 57%, transparent 64%);
+}
+
+/* ---------- 册子落在桌面上的投影 ---------- */
+.book-shadow {
+  position: absolute;
+  left: -2%; right: -2%; bottom: -28px;
+  height: 48px;
+  background: radial-gradient(60% 100% at 50% 0%, rgba(0, 0, 0, .60), transparent 72%);
+  filter: blur(6px);
+  pointer-events: none;
+}
+
+/* ---------- 刮改痕：**已按作者要求整体移除**（2026-10-04） ----------
+   作者两次指出这些浅斑"像没去掉的黑块"，v1 §6.2 的这项装饰作废。
+   随之删除：index.html 里两处 .scrape 元素、原 .scrape 规则。 */
+
+/* ---------- 红绳（书签的绳） ---------- */
+.cord {
+  position: absolute;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(168, 50, 42, .88), rgba(118, 32, 26, .72));
+  box-shadow: 0 0 0 1px rgba(56, 14, 11, .22);
+}
+
+/* ---------- 红穗（书签下的小穗子） ---------- */
+.tassel {
+  position: absolute;
+  width: 10px; height: 30px;
+  background: repeating-linear-gradient(90deg,
+    rgba(168, 50, 42, .92) 0 1px, rgba(116, 32, 26, .82) 1px 2px);
+  -webkit-mask-image: linear-gradient(180deg, #000 60%, transparent 100%);
+          mask-image: linear-gradient(180deg, #000 60%, transparent 100%);
+  transform-origin: top center;
+  animation: tassel-sway 6s var(--ease) infinite;
+}
+@keyframes tassel-sway {
+  0%, 100% { transform: rotate(-1.2deg); }
+  50%      { transform: rotate(1.6deg); }
+}
+
+/* ---------- 朱印（方印；边缘残缺在印泥上，印文必须干净） ----------
+   曾把 roughEdge 直接加在整枚印上 —— 位移滤镜把印文也糊出「诡异毛边」
+   （作者对版指出）。拆层：::before 做带糙边的印泥块，文字叠在上不动。 */
+.seal {
+  position: relative;
+  z-index: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-song);
+  font-weight: 700;
+  color: #f4e8da;
+}
+.seal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(150deg, var(--zhu), #7d221c);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 220, 190, .26),
+    inset 0 -2px 3px rgba(58, 13, 10, .50);
+  filter: url(#roughEdge);
+}
+/* 美术精修（2026-10-06）：印泥渗色 —— 印外一圈极淡的朱晕（GPT 精修清单第 12 项） */
+.seal::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: -2;
+  background: rgba(121, 34, 27, .16);
+  filter: blur(4px);
+}
+
+/* ---------- 墨痕分隔线：一笔两端渐细 ---------- */
+.ink-rule {
+  height: 6px;
+  background: linear-gradient(90deg,
+    transparent, rgba(31, 27, 22, .52) 12%, rgba(31, 27, 22, .66) 50%,
+    rgba(31, 27, 22, .38) 88%, transparent);
+  -webkit-mask-image: radial-gradient(60% 100% at 50% 50%, #000 42%, transparent 100%);
+          mask-image: radial-gradient(60% 100% at 50% 50%, #000 42%, transparent 100%);
+  opacity: .88;
+}
+
+/* ---------- 墨漫：变量缺失时的样子（指令 §3.7）----------
+   作者 2026-10-04：原来那团深色块在酒馆里像被涂黑的杠 —— 「不要了」。
+   改成一行极淡的「未记」小字：既不再有黑块，也不至于让版面看着像坏了，
+   口气与岁轮中央那句「月日未记」一致。 */
+.mo-man {
+  display: inline-block;
+  min-width: 3.2em;
+  color: transparent;                       /* 抹掉原来撑宽用的 &nbsp; */
+  background: none;                         /* 不再有深色块 */
+  border-radius: 0;
+}
+.mo-man::after {
+  content: "未记";
+  font-family: var(--font-song);
+  font-size: .86em;
+  letter-spacing: .12em;
+  color: rgba(31, 27, 22, .3);
+}

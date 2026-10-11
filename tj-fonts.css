@@ -1,0 +1,12 @@
+/* 自动生成，勿手改 —— 跑 python tools/subset_fonts.py */
+/* 字体子集：世界书语料 + 界面词条；未覆盖的字回退到系统楷体/宋体 */
+@font-face{
+  font-family:'LXGW WenKai Screen';
+  src:url('lxgwwenkai-subset.woff2') format('woff2');
+  font-weight:400; font-style:normal; font-display:swap;
+}
+@font-face{
+  font-family:'Ma Shan Zheng';
+  src:url('mashanzheng-subset.woff2') format('woff2');
+  font-weight:400; font-style:normal; font-display:swap;
+}

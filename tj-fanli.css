@@ -1,0 +1,90 @@
+/* ==================================================================
+   棠郡 · 册首凡例覆盖笺（方案 A，2026-10-10）
+   ------------------------------------------------------------------
+   首次开册盖在册面上的一张笺：此册为何物 / 能看见什么 / 可为何事。
+   不占页签、不进 SPREADS（tj-book.js 一概不知）；点一下收起。
+   版式随既有语言：纸色 tokens、毛笔题 + 朱点、楷体正文、宋体小字。
+================================================================== */
+
+.fanli {
+  position: absolute;
+  inset: 0;
+  z-index: 60;                 /* 盖过页与叶（.leaf 约 40 段），压在书脊与页签之下亦可 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(31, 27, 22, .18);   /* 一层淡墨影，提示「这是覆着的一页」 */
+  opacity: 0;
+  transition: opacity 320ms var(--ease);
+  cursor: pointer;
+}
+.fanli.is-on { opacity: 1; }
+.fanli[hidden] { display: none; }
+
+/* 笺身：比书页小一号的一张纸，微斜，像临时覆上去的 */
+.fanli-paper {
+  width: min(72%, 460px);
+  padding: 26px 30px 20px;
+  background:
+    linear-gradient(160deg, var(--paper-hi), var(--paper) 58%, var(--paper-lo));
+  border: 1px solid var(--paper-edge);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .25) inset,
+    0 14px 34px rgba(31, 27, 22, .38);
+  transform: rotate(-.7deg);
+  color: var(--ink);
+}
+
+/* 题字：毛笔 + 朱点，随 .block-head 的语言（朱点是 ::before 画的） */
+.fanli-head {
+  font-family: var(--font-brush);
+  font-size: var(--fs-head);
+  line-height: 1.3;
+  letter-spacing: .12em;
+  margin: 0 0 14px;
+  display: flex;
+  align-items: center;
+}
+.fanli-head::before {
+  content: "";
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--zhu);
+  margin-right: 9px;
+  flex: none;
+}
+
+/* 三行问答：朱字小引 + 楷体正文 */
+.fanli-line {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-family: var(--font-kai);
+  font-size: var(--fs-body);
+  line-height: var(--fs-body-lh);
+  margin-bottom: 10px;
+}
+.fanli-line:last-of-type { margin-bottom: 0; }
+.fanli-lead {
+  flex: none;
+  font-family: var(--font-song);
+  font-size: var(--fs-note);
+  color: var(--zhu-text);
+  letter-spacing: .06em;
+  white-space: nowrap;
+}
+
+/* 笺尾提示：小字宋，淡墨 */
+.fanli-hint {
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(31, 27, 22, .18);
+  font-family: var(--font-song);
+  font-size: var(--fs-micro);
+  color: rgba(31, 27, 22, .62);
+  text-align: right;
+  letter-spacing: .08em;
+}
+
+/* 深夜档笺面略沉（随纸色 tint 体系，不另开夜色） */
+html[data-hour="深夜"] .fanli-paper { filter: brightness(.94); }

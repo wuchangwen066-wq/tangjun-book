@@ -1,0 +1,82 @@
+/* ==================================================================
+   棠郡 · 年谱页（WP7.5）
+   ------------------------------------------------------------------
+   一册最后一页，分两栏：
+     左页 行迹 = 小总结（近事流水，读 业.行迹，由系统维护）
+     右页 年谱 = 大总结（编年一句一事，读 棠郡.年谱，AI 于触发点追加）
+
+   **版式一律随册页既有语言**：标题用 .block-head（毛笔题 + 前缀朱点，
+   与「业 / 物 / 群像」同源，见 tj-pages.css §区块题），正文用 .body，
+   分栏用 .ink-rule 界行。本文件只补年谱独有的两处：条目列表与分页条。
+   数据源与渲染见 core/tj-nianpu.js。
+================================================================== */
+
+/* 题后小计：跟在 .block-head 标题之后，用宋体小字、淡一档，不与题争 */
+.nianpu-count {
+  font-family: var(--font-song);
+  font-size: var(--fs-note);
+  letter-spacing: 0;
+  color: var(--ink-2);
+  margin-left: 2px;
+}
+
+/* 条目区：吃掉 .body 剩余高度，自身滚动（隐藏滚动条），分页钮挪去页脚右下 */
+.nianpu-list {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  overscroll-behavior: contain; scrollbar-width: none;
+  display: flex; flex-direction: column; gap: 2px; padding-right: 4px;
+  padding-bottom: 6px;
+}
+.nianpu-list::-webkit-scrollbar { width: 0; height: 0; }
+.nianpu-item {
+  display: flex; gap: 10px; align-items: baseline;
+  padding: 7px 0; border-bottom: 1px dashed rgba(31, 27, 22, .16);
+}
+.nianpu-item:last-child { border-bottom: 0; }
+.nianpu-date {
+  flex: 0 0 auto; font-size: 12px; color: rgba(122, 58, 42, .78);
+  letter-spacing: .06em; white-space: nowrap;
+}
+.nianpu-text { font-size: 13.5px; line-height: 1.8; color: rgba(31, 27, 22, .84); }
+.nianpu-empty { font-size: 13px; color: rgba(31, 27, 22, .44); line-height: 1.9; padding: 10px 0; }
+
+/* ---------- 2026-10-10 大改（作者定版式）----------
+   行迹：一段只记一日 —— 日头小题 + 当日正文段
+   年谱：一叶一篇大总结 —— 写法同「传」，两格缩进、舒排 */
+.nianpu-day { padding: 6px 0 10px; border-bottom: 1px dashed rgba(31, 27, 22, .16); }
+.nianpu-day:last-child { border-bottom: 0; }
+/* 2026-10-10 作者：行迹要写满纸页，不许留白 —— 不足一叶时各日均摊拉伸，
+   界行匀到页底；内容超页时 flex 不收缩，照常滚动。 */
+.nianpu-day { flex: 1 0 auto; }
+.nianpu-day-head {
+  font-family: var(--font-brush); font-size: 15px; letter-spacing: 2px;
+  color: rgba(122, 58, 42, .9); margin-bottom: 4px;
+}
+.nianpu-day-text {
+  font-size: 13.5px; line-height: 2; color: rgba(31, 27, 22, .84);
+  text-indent: 2em;
+}
+/* 年谱篇章：段落一律用「人·传」同款 .cz-bio-p（楷体/正文号/界行/缩进），
+   段间不加缝——界行节奏要像一整张手抄页连下来（2026-10-10 作者定）。 */
+.nianpu-essay { display: block; }
+.nianpu-essay .cz-bio-p { margin: 0; }
+.nianpu-essay .cz-bio-p + .cz-bio-p { margin-top: 0; }
+
+/* ---------- 分页：2026-10-10 作者定版——写进纸页地脚，跟「行迹 · 一段一日」
+   同一行，不另起浮窗（浮窗压字，作者点名违和）。
+   二修（作者）：水平居中、左右对称——.foot 相对定位，pager 绝对居中；
+   上下不动（垂直仍随地脚行高居中）。 */
+.foot { position: relative; }
+.nianpu-pager {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex; align-items: center;
+  gap: 10px; padding: 0; margin: 0;
+  background: none; border: 0; border-radius: 0;
+}
+.nianpu-pager[hidden] { display: none; }
+.nianpu-page {
+  font-size: 12px; color: rgba(31, 27, 22, .55);
+  letter-spacing: .08em; min-width: 5em; text-align: center;
+}
+.nianpu-pager .page-btn[disabled] { opacity: .35; cursor: default; }

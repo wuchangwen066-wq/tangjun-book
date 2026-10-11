@@ -1,0 +1,804 @@
+/* ==================================================================
+   棠郡状态栏 · 版式层（古籍版式）
+   ------------------------------------------------------------------
+   只管版式：版框双边、版心鱼尾、天头眉批、地脚页码、乌丝栏、
+   正文与批注的排印、夹页、区块题。
+   不含材质属性（那是 tj-material.css 的活），不含装配尺寸。
+
+   版面结构（每页）：
+     ┌ 天头（眉批：朱笔小字）──────────────┐
+     │ 正文区（乌丝栏界行） │ 版心（鱼尾+页名+页码） │
+     └ 地脚 ───────────────────────────────┘
+   左页版心在右（靠书脊），右页版心在左 —— 都朝中缝。
+================================================================== */
+
+/* 同一时刻只显示一页对开：未激活的整页隐藏（阶段一的换页靠这个） */
+.page { display: none; }
+.page.is-active {
+  display: grid;
+  grid-template-columns: 1fr var(--banxin-w);
+  grid-template-rows: var(--tian-tou) 1fr var(--di-jiao);
+  grid-template-areas:
+    "tian   tian"
+    "body   banxin"
+    "foot   foot";
+  padding: 0;
+  overflow: hidden;
+}
+.page.is-active.page-right {
+  grid-template-columns: var(--banxin-w) 1fr;
+  grid-template-areas:
+    "tian   tian"
+    "banxin body"
+    "foot   foot";
+}
+
+/* ---------- 版框：外粗内细双边（指令 §2 古籍版式） ----------
+   2026-10-04 视觉评审：全册墨覆盖仅 2.5-3.9%，版框是页上最长的线，
+   由 .58/.40 提到 .62/.46 —— 纸与框的界限清楚了，页子才"立"得起来。 */
+.frame {
+  position: absolute;
+  inset: 13px;
+  border: var(--frame-out) solid rgba(31, 27, 22, .62);
+  pointer-events: none;
+  z-index: 4;
+  filter: url(#frameRough);
+}
+.frame::before {
+  content: "";
+  position: absolute;
+  inset: var(--frame-gap);
+  border: var(--frame-in) solid rgba(31, 27, 22, .46);
+}
+
+/* ---------- 天头：饰带在上，眉批在下（两者间距 ≥10px） ---------- */
+.tian {
+  grid-area: tian;
+  position: relative;          /* 饰带 ::before / ::after 相对天头定位 */
+  padding: 56px 32px 0;        /* 顶部多留 24px 给饰带 */
+  display: flex;
+  align-items: baseline;       /* 2026-10-05：眉批小字与朱批基线对齐（原先顶对齐，红字显得靠下） */
+  gap: 10px;
+}
+
+/* ---------- 页眉饰带（v2 任务 B.5 · 三款式） ----------
+   形制：顶部双线（外粗内细）→ 纹样带 → 底部一条细线；两端可挂云纹角花。
+   款式由页面决定（指令原文："三种款式，由页面决定使用"）：
+     · 混合款（默认）＝ 回纹带 ＋ 两端云纹角花   → 时、人（信息最重）
+     · 流云款          ＝ 一排卷云，无角花     → 令、痕（气氛更轻）
+     · 纯回纹款        ＝ 双线＋回纹带＋细线   → 窄屏降级
+   `--hb-img` 由 TJPattern.applyHeadbands() 注入（含时辰档配色）。
+   纹样平铺、低不透明度（.17），只作暗笔，不抢眉批与正文。 */
+
+/* 款式分配（指令 B.5：「三种款式，由页面决定使用」）
+     · 时 / 人  → 混合款：回纹带 ＋ 两端云纹角花
+     · 令 / 痕 → 流云款：一排卷云，无角花
+     · 窄屏    → 纯回纹款（角花隐藏，见文末媒体查询） */
+.page[data-tab="令"] .tian,
+.page[data-tab="痕"] .tian {
+  --hb-img: url("yunwen.svg");
+  --hb-corner: none;
+  --hb-corner-r: none;
+}
+
+/* 顶部双线：外粗（border）＋ 内细（inset 阴影） */
+.tian::before {
+  content: "";
+  position: absolute;
+  left: 32px; right: 32px;
+  top: 16px;
+  height: 7px;
+  border-top: 2.6px solid rgba(31, 27, 22, .5);
+  box-shadow: inset 0 .9px 0 rgba(31, 27, 22, .34);
+  pointer-events: none;
+  opacity: .17;
+}
+/* 纹样带本体 */
+.tian::after {
+  content: "";
+  position: absolute;
+  left: 32px; right: 32px;
+  top: 30px;
+  height: 9px;
+  background-image: var(--hb-img, url("huiwen.svg"));
+  background-repeat: repeat-x;
+  background-size: 24px 9px;
+  opacity: .17;
+  pointer-events: none;
+}
+
+/* 两端云纹角花：与纹样带之间留 6–10px，不压回纹 */
+.page .head-corner {
+  position: absolute;
+  top: 22px;
+  width: 76px; height: 76px;
+  background-repeat: no-repeat;
+  background-size: contain;
+  opacity: .5;
+  pointer-events: none;
+}
+.page .head-corner.is-left  { left: 12px;  background-image: var(--hb-corner); }
+.page .head-corner.is-right { right: 12px; background-image: var(--hb-corner-r); }
+
+/* 窄屏：藏角花，纹样带降为纯回纹款 */
+@media (max-width: 820px) {
+  .page .tian { --hb-img: url("huiwen.svg"); }
+  .page .head-corner { display: none; }
+}
+
+/* ---------- 冰裂纹：已按作者要求移除（2026-10-03） ----------
+   v2 指令的「任务 C 冰裂纹重做」整体作废，不再任何位置点缀。
+   随之删除：gen_icecrack.py。
+   回纹 / 云纹页眉饰带保留不受影响。 */
+.meipi {
+  font-family: var(--font-kai);
+  font-size: var(--fs-note);
+  color: var(--zhu-text);
+  letter-spacing: 1px;
+  line-height: 1.5;
+}
+.tian .label {
+  font-family: var(--font-song);
+  font-size: var(--fs-micro);
+  /* 同上：眉批小字不得用灰墨（对比 3.1:1） */
+  color: var(--ink-2);
+  letter-spacing: 2px;
+  flex: none;
+}
+
+/* ---------- 正文区 ---------- */
+.body {
+  grid-area: body;
+  position: relative;
+  /* 往右收：正文与名单都退到版框内沿之后，不贴线 */
+  padding: 4px 36px 10px 42px;
+  overflow: hidden;
+}
+/* 2026-10-10 作者：每页正文都要能上下滚动（同「业」页那套——
+   隐藏滚动条、overscroll 收住不外溢）。业页有专属规则在前，
+   谱页正文交给 .nianpu-list 自滚，这两处不重复开。 */
+.page[data-tab="时"] .body,
+.page[data-tab="人"] .body,
+.page[data-tab="令"] .body,
+.page[data-tab="痕"] .body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  cursor: default;
+}
+.page[data-tab="时"] .body::-webkit-scrollbar,
+.page[data-tab="人"] .body::-webkit-scrollbar,
+.page[data-tab="令"] .body::-webkit-scrollbar,
+.page[data-tab="痕"] .body::-webkit-scrollbar { width: 0; height: 0; }
+.page[data-tab="时"] .body:focus,
+.page[data-tab="人"] .body:focus,
+.page[data-tab="令"] .body:focus,
+.page[data-tab="痕"] .body:focus,
+.page[data-tab="时"] .body:focus-visible,
+.page[data-tab="人"] .body:focus-visible,
+.page[data-tab="令"] .body:focus-visible,
+.page[data-tab="痕"] .body:focus-visible { outline: none; }
+/* 界行：横排文字的页用横条（写在 .prose/.rows 上，行高=线距，天然对齐）；
+   「时」页左页的竖向乌丝栏 2026-10-06 按作者要求整体移除（竖条纹不要）。 */
+.body::before { content: none; }
+.body > * { position: relative; z-index: 1; }
+
+/* ---------- 版心：鱼尾 + 页名 + 页码 ---------- */
+.banxin {
+  grid-area: banxin;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 12px;
+  gap: 6px;
+  border-left: 1px solid rgba(31, 27, 22, .16);
+}
+.page-right .banxin { border-left: 0; border-right: 1px solid rgba(31, 27, 22, .16); }
+.fish-tail { width: 20px; height: 34px; opacity: .72; }
+.banxin .ye-ming {
+  writing-mode: vertical-rl;
+  font-family: var(--font-brush);
+  font-size: 22px;
+  letter-spacing: 3px;
+  color: var(--ink);
+}
+.banxin .ye-ma {
+  font-family: var(--font-song);
+  font-size: var(--fs-micro);
+  color: var(--ink-2);
+  letter-spacing: 1px;
+  margin-top: auto;
+  padding-bottom: 8px;
+}
+
+/* ---------- 地脚 ---------- */
+.foot {
+  grid-area: foot;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 26px 12px;
+  font-family: var(--font-song);
+  font-size: var(--fs-micro);
+  /* 2026-10-04 视觉评审：--ink-3 在纸上只有 3.1:1，低于 4.5:1；DESIGN §3 也写明
+     "灰墨禁用于正文"。地脚/页码是小字正文，改用淡墨 --ink-2（实测 4.9:1）。 */
+  color: var(--ink-2);
+  letter-spacing: 1px;
+}
+
+/* ---------- 题签（页「时」右上：地点/天气） ---------- */
+.tiqian {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.tiqian .place {
+  font-family: var(--font-brush);
+  font-size: 22px;
+  letter-spacing: 2px;
+  color: var(--ink);
+}
+.tiqian .sky {
+  font-family: var(--font-song);
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+}
+
+/* ---------- 区块题（毛笔 20–22px，前缀一枚朱点） ---------- */
+.block-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-brush);
+  font-size: var(--fs-head);
+  letter-spacing: 3px;
+  color: var(--ink);
+  margin: 6px 0 8px;
+}
+.block-head::before {
+  content: "";
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--zhu);
+  flex: none;
+  box-shadow: 0 0 0 1px rgba(120, 30, 24, .25);
+}
+
+/* ---------- 正文排印（行高与横条界行同源：--rule-gap） ---------- */
+.prose {
+  font-family: var(--font-kai);
+  font-size: var(--fs-body);
+  line-height: var(--rule-gap);
+  color: var(--ink);
+  text-indent: 2em;      /* 手抄小记：首行缩进 */
+  background-image: repeating-linear-gradient(180deg,
+    transparent 0 calc(var(--rule-gap) - 1px),
+    rgba(31, 27, 22, .13) calc(var(--rule-gap) - 1px) var(--rule-gap));
+}
+.prose.is-faded { color: rgba(31, 27, 22, .42); }   /* 过去的小记 */
+.mini {
+  font-family: var(--font-kai);
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+  line-height: 1.8;
+}
+
+/* ---------- 批注体列表（势力 / 人情 等）：写在横条界行上 ---------- */
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background-image: repeating-linear-gradient(180deg,
+    transparent 0 calc(var(--rule-gap) - 1px),
+    rgba(31, 27, 22, .13) calc(var(--rule-gap) - 1px) var(--rule-gap));
+}
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: var(--fs-body);
+  line-height: var(--rule-gap);   /* 与线距同源，字正好落在横线上 */
+  color: var(--ink);
+}
+.row .k { font-family: var(--font-brush); font-size: 18px; letter-spacing: 1px; flex: none; min-width: 3.4em; }
+/* 名单的正文也是正文 —— 不得小于 16px（指令 §0.3 硬约束） */
+.row .v { font-family: var(--font-song); font-size: 16px; color: var(--ink-2); }
+/* 词阶/状态词：用焦墨楷体抬一档，不撒朱 —— 朱只上印与关键节点（硬约束） */
+.row .v.is-tag { color: var(--ink); font-family: var(--font-kai); font-size: var(--fs-body); }
+.row .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--zhu); flex: none; }
+
+/* ---------- 夹页：溢出的信息折成纸缝里的笺（窄条，不占满行） ---------- */
+.clip {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 5px 12px;
+  font-family: var(--font-song);
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+  background: linear-gradient(180deg, rgba(230, 220, 196, .92), rgba(214, 203, 178, .92));
+  border-left: 2px solid rgba(168, 50, 42, .55);
+  box-shadow: 1px 2px 5px rgba(60, 45, 25, .28);
+  cursor: pointer;
+}
+.clip:hover { color: var(--ink); }
+
+/* ---------- 时辰环（页「时」的主体） ----------
+   2026-10-04 视觉评审：这一页留白 93%、墨仅 2.7%，是全册最空最弱的一页 ——
+   时环是它的主角，却被画成 236px 的淡线。改为放大到 304px（页宽 520 的 58%）、
+   环线与刻线加深，地支字由 .55 提到 .72 灰，主角才立得住。 */
+.hour-ring {
+  display: block;
+  margin: 2px auto 0;
+  width: min(304px, 100%);
+  height: auto;
+  aspect-ratio: 1;
+}
+.hour-ring .ring-bg { fill: none; stroke: rgba(31, 27, 22, .42); stroke-width: 1.15; }
+.hour-ring .tick { stroke: rgba(31, 27, 22, .46); stroke-width: 1; }
+.hour-ring .tick.is-now { stroke: var(--zhu); stroke-width: 2.8; }
+.hour-ring .now-arc { fill: none; stroke: rgba(159, 48, 40, .78); stroke-width: 2.2; stroke-linecap: round; }
+
+/* 「时」左页是图（时辰环），不是文章：内容整体在版心内居中，
+   空就不至于全堆在下半页（原先上方环、下方一整片空，重心偏上）。 */
+.page.page-left[data-tab="时"] .body { justify-content: center; }
+.hour-ring .zi {
+  font-family: var(--font-brush);
+  font-size: 46px;
+  fill: var(--ink);
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.hour-ring .lamp-dot { fill: var(--teng); }
+
+/* ---------- 岁轮（页「令」，tj-ling.js 重绘） ---------- */
+/* 轮盘宽度**随页宽流动**（v2 §A.12 的「窄屏岁轮缩放」）。
+   桌面上页宽 520 → min() 取 384，与原设计一致；
+   页一窄就按「页宽 − 左内边距 36 − 版心 46 − 右内边距 36 − 2 余量」收缩，
+   正好贴住可用宽，既不压版心、也不出框。
+   不用断点写死，是因为页宽本身是连续量（视口宽 ÷ 2、视口高都会限它，
+   实测 900px 视口下页只有 375，比 820 断点还窄）。 */
+.year-wheel {
+  display: block;
+  margin: 0 auto;
+  width: var(--wheel-w, 384px);
+  /* 高度由宽度按 1:1 派生。**必须 `flex-shrink: 0`** ——
+     .ling-body 是 flex 列，默认 flex-shrink 1：笺一出，轮盘就被沿主轴压扁，
+     宽度仍是 384 而高度掉到 324，**正圆被压成椭圆**（实测）。 */
+  height: auto;
+  aspect-ratio: 1;
+  flex: 0 0 auto;
+  transition: width var(--dur-slip, 640ms) var(--ease);
+}
+
+/* 出笺时轮盘缩一档（等比）。这是**有意为之**的：轮盘让位给下方的文字。
+   取消（Esc / 再点 / 点朱针 / 点「回到当下」）即回正 —— 因为笺收起时会被
+   折叠成 0 高（见 .suilun-note），布局里不再留那 196px，轮盘自然长回去。 */
+.ling-body.has-slip { --wheel-w: calc(var(--wheel-base) * .78); }
+
+/* ---------- 窄屏令页（v2 §A.12）----------
+   ≤640 起整册退化为「单页纵滚」，页宽已经很紧。
+   这时令页的轮盘改用**整个可用宽**：
+     ① 不再把版心那 46px 要回来（轮盘会压到页名）—— margin-right 归零；
+     ② 内边距从 36 收到 12，省下的都留给轮盘；
+     ③ 宽度按 100%（= 内容盒）取，仍以 384 封顶。
+   实测（视口 375）：轮盘由 191 → 241，节气名不至于缩到读不出。
+   笺本来就在轮盘**下方**的文档流里居中，不压图，无需另设；字号不动
+   （简介仍 15px，满足「字号保 ≥15px」）。
+   —— 本块必须排在基础规则**之后**：同权重时后者胜，放前面会被盖掉（已踩）。 */
+@media (max-width: 640px) {
+  .ling-body {
+    padding-left: 12px;
+    padding-right: 12px;
+    margin-right: 0;
+    --wheel-base: min(384px, 100%);
+  }
+}
+/* 令页正文：轮上移，下方留给竖排笺 */
+.ling-body {
+  /* 轮盘尺寸由这里统一给（作者 2026-10-04 定：常态大、出笺时缩小、取消即回正、过渡要顺）。
+     --wheel-base 是「常态尺寸」，页一窄就跟着缩，桌面恒为 384；
+     出笺时按同一比例取 0.78（等比，不是压扁 —— 见下）。 */
+  --wheel-base: min(384px, calc(var(--page-w) - 120px));
+  --wheel-w: var(--wheel-base);
+  /* 节奏（作者 2026-10-04 二次对版：整体再放慢一档）。
+     **笺与轮盘共用这两个时长** —— 必须同步，否则轮盘缩完了笺还没到，看着是断的。 */
+  --dur-slip: 640ms;               /* 几何：笺的高度/上距、轮盘宽度 */
+  --dur-fade: 520ms;               /* 淡入淡出 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  /* 真因不是 padding，是 **grid 列宽**：左页把那 46px 让给了版心（.banxin），
+     所以 .body 只有 474 宽 —— 轮盘居中于它，必然偏左 23px（实测 −23）。
+     令页的轮盘该相对**整页**居中：
+       ① 内边距改对称（.body 原是左 42 / 右 36，为横排正文"右收"而设）；
+       ② 用 margin-right 把版心那 46px 要回来（半幅 23px 即居中补偿）。
+     轮盘 384 < 520−80，要回来也不会压到版心。 */
+  padding-left: 36px;
+  padding-right: 36px;
+  margin-right: -46px;
+}
+/* 文字一律不拦鼠标 —— 否则节气名 <text> 盖在扇上，扇收不到 hover */
+.year-wheel text { pointer-events: none; }
+/* 悬停反馈：仿人页扇子的"抬面"，幅度减到约四成（扇 −8px／此 ≈3px）。
+   位移方向沿半径向外，由 JS 逐扇算好写进 --tx/--ty（同组抬起，字不脱扇）。
+   实测：绕盘心缩放或原地缩放都稳（7/7 无振荡）—— 早前记的"位移会振荡"
+   是探针把上一个扇区的 mouseleave 算到了当前，属测试方法错误，与位移无关。 */
+.year-wheel .term-slot {
+  transform-box: view-box;
+  transform-origin: 340px 340px;
+  transition: transform 200ms var(--ease), filter 200ms var(--ease);
+}
+.year-wheel .term-slot:hover { transform: translate(var(--tx), var(--ty)); }
+.year-wheel .term-sector { cursor: pointer; }
+.year-wheel .term-slot:hover .term-sector { filter: brightness(1.06); }
+.year-wheel .term-sector:focus { outline: none; }
+.year-wheel .term-slot:focus-within { transform: translate(var(--tx), var(--ty)); filter: brightness(1.1); }
+.year-wheel .term-sector.is-picked { filter: brightness(1.12) saturate(1.06); }
+/* 引线：**必须能过渡**。它原本是「append 即显、remove 即没」——
+   笺在慢慢淡出、引线却啪地消失，这就是作者说的"退出违和"的主因。
+   现在进场延迟 90ms 淡入（跟在笺后面），退场由 JS 先摘 is-on 再延时移除。 */
+.year-wheel .slip-lead {
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 460ms var(--ease);
+}
+.year-wheel .slip-lead.is-on {
+  opacity: 1;
+  transition: opacity 460ms var(--ease) 90ms;
+}
+/* 朱针整枝可点 = 「回到当下」（v2 §A.11）。针身太细，命中靠那条透明宽线。 */
+.year-wheel .needle-hit { cursor: pointer; }
+.year-wheel .needle-hit:focus { outline: none; }
+.year-wheel .needle-hit:focus-visible { outline: 2px solid var(--zhu-text); outline-offset: 2px; }
+
+/* 刻点：命中区（.fest-dot，透明 r=10）与视觉圆（.fest-mark）分开；
+   悬停微抬向量由 JS 写进 --tx/--ty，与节气扇同款、幅度再小一档 */
+.year-wheel .fest-slot {
+  transform-box: view-box;
+  transform-origin: 340px 340px;
+  transition: transform 200ms var(--ease), filter 200ms var(--ease);
+}
+.year-wheel .fest-dot { cursor: pointer; }
+.year-wheel .fest-mark { pointer-events: none; }
+.year-wheel .fest-slot:hover { transform: translate(var(--tx), var(--ty)); }
+.year-wheel .fest-slot:hover .fest-mark { filter: brightness(1.25); }
+.year-wheel .fest-slot:focus-within { transform: translate(var(--tx), var(--ty)); }
+.year-wheel .fest-slot:focus-within .fest-mark { filter: brightness(1.4); }
+
+/* ---------- 轮下竖排笺 ----------
+   竖排纸笺，顶端一枚红绳小结；自右向左：节气名 / 月令 / 简介 / 朱色节令行 / 状态印。
+   毛边与倾斜做在**底层纸**上，不施于文字，避免糊字。
+   这里是**流内元素**（不再是浮层）—— 所以不会盖住轮盘。 */
+.suilun-note {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-top: 0;
+  /* 收起时必须**真的不占位**：只靠 visibility:hidden 会留下 ~196px 的空档，
+     轮盘就永远长不回原尺寸（作者对版指出）。
+     用 max-height 折成 0；overflow 跟着一起切 —— 展开时要放开，
+     否则顶端那枚红绳小结（top:-11px）会被裁掉。
+     时长走 .ling-body 的两个令牌，与轮盘同步（见上）。 */
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-8px);
+  transition: max-height var(--dur-slip, 640ms) var(--ease),
+              margin-top var(--dur-slip, 640ms) var(--ease),
+              opacity var(--dur-fade, 520ms) var(--ease),
+              transform var(--dur-fade, 520ms) var(--ease),
+              visibility 0s linear var(--dur-slip, 640ms);
+}
+.suilun-note.is-on {
+  margin-top: 14px;   /* 红绳小结上探 11px + 余量；6px 时会与轮盘下缘叠（实测） */
+  /* max-height 由 JS 按**实际内容**给（showSlip 里量 scrollHeight）——
+     以前写死 240px，内容只有 ~196px：前半段就展开完了、后半段干等，
+     这就是作者说的"展开不够丝滑"的主因。这里不再写死。 */
+  overflow: visible;
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition: max-height var(--dur-slip, 640ms) var(--ease),
+              margin-top var(--dur-slip, 640ms) var(--ease),
+              opacity var(--dur-fade, 520ms) var(--ease),
+              transform var(--dur-fade, 520ms) var(--ease),
+              visibility 0s;
+}
+
+/* 红绳小结 + 一段短红线，像挂着的 */
+.note-cord {
+  position: absolute;
+  top: -11px; left: 50%;
+  width: 9px; height: 12px;
+  margin-left: -4.5px;
+  background: var(--zhu);
+  border-radius: 50% 50% 34% 34% / 62% 62% 30% 30%;
+  box-shadow: 0 1px 2px rgba(0,0,0,.24);
+  z-index: 2;
+}
+.note-cord::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: -10px;
+  width: 1.4px; height: 11px;
+  background: var(--zhu);
+  transform: translateX(-50%);
+  opacity: .85;
+}
+
+/* 纸底：下沿刻意不齐（clip-path 锯齿）+ 极轻倾斜
+   （作者 2026-10-04：文字框收小 —— 纸边留量一并收紧） */
+.note-paper {
+  position: absolute;
+  inset: -6px -10px -9px -10px;
+  background: linear-gradient(178deg, rgba(241,234,216,.97), rgba(223,212,187,.97));
+  box-shadow: 0 5px 16px rgba(48,36,20,.28), inset 0 0 22px rgba(120,95,60,.13);
+  transform: rotate(-.9deg);
+  clip-path: polygon(0 0, 100% 0, 100% 94%, 93% 100%, 86% 95%, 78% 100%, 69% 95%,
+    60% 100%, 51% 95%, 42% 100%, 33% 95%, 24% 100%, 15% 95%, 7% 100%, 0 94%);
+}
+
+/* 五列：vertical-rl 下块级元素天然自右向左摞
+   （作者 2026-10-04：文字框收小 —— 高度上限 222 → 196，内边距一并收） */
+.note-body {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  position: relative;
+  padding: 4px 7px;
+  max-height: 196px;
+  overflow: hidden;
+}
+.note-col { display: block; }
+.note-name {
+  font-family: var(--font-brush);
+  font-size: 24px;
+  letter-spacing: .2em;
+  color: var(--ink);
+  line-height: 1;
+  padding-top: 3px;
+}
+.note-name .dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--zhu);
+  vertical-align: middle;
+  margin-top: 4px;
+}
+.note-sub {
+  font-family: var(--font-song);
+  font-size: 11.5px;
+  color: var(--ink-2);
+  letter-spacing: .13em;
+  margin-right: 6px;
+}
+.note-text {
+  font-family: var(--font-kai);
+  font-size: 15px;              /* v2：简介字号不得小于 15px —— 收框不收字 */
+  line-height: 1.8;
+  letter-spacing: .08em;
+  color: var(--ink);
+  margin-right: 7px;
+  max-height: 188px;
+}
+.note-extra {
+  font-family: var(--font-song);
+  font-size: 11px;
+  color: var(--zhu-text);
+  letter-spacing: .14em;
+  margin-right: 6px;
+  padding-top: 2px;
+}
+.note-state {
+  font-family: var(--font-song);
+  font-size: 11px;
+  color: var(--paper-hi);
+  background: var(--zhu);
+  padding: 3px 2px;
+  letter-spacing: .14em;
+  margin-right: 5px;
+  /* vertical-rl 下块级元素的"高"= 行内尺寸，会撑满整列 ——
+     印章若任其撑满，就成了一条通高朱条（实测）。这里按内容定高，
+     让它是一枚小印，而不是一道红杠。 */
+  height: max-content;
+}
+.note-state.is-plain { background: rgba(31,27,22,.55); }
+
+@media (prefers-reduced-motion: reduce) {
+  .suilun-note, .year-wheel, .year-wheel .term-slot, .year-wheel .fest-slot,
+  .year-wheel .term-sector { transition: none !important; animation: none !important; }
+}
+.jie-slip {
+  background: linear-gradient(180deg, rgba(235, 226, 202, .95), rgba(218, 207, 182, .95));
+  border-left: 2px solid rgba(168, 50, 42, .55);
+  box-shadow: 1px 3px 8px rgba(60, 45, 25, .30);
+  padding: 6px 14px 10px;
+  transform: rotate(-.4deg);   /* 夹进去的笺，不必与版心对齐 —— 指令 §0.3 */
+}
+/* 札头一行放标题 + 「回到当下」印（v2 §A.11 的复位入口）。
+   印平时 hidden，只有右页被切到某条时才现。 */
+.jie-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.jie-back {
+  flex: none;
+  font-family: var(--font-song);
+  font-size: 11px;
+  letter-spacing: .1em;
+  color: var(--paper-hi);
+  background: var(--zhu);
+  border: 0;
+  padding: 3px 6px;
+  cursor: pointer;
+  transform: rotate(-.6deg);
+}
+.jie-back:hover { filter: brightness(1.08); }
+.jie-back:focus-visible { outline: 2px solid var(--zhu-text); outline-offset: 2px; }
+
+/* ---------- 竖排小物（纪年、节令签） ---------- */
+.jinian {
+  writing-mode: vertical-rl;
+  font-family: var(--font-song);
+  font-size: var(--fs-note);
+  letter-spacing: 3px;
+  color: var(--ink-2);
+}
+.jieqian {
+  writing-mode: vertical-rl;
+  font-family: var(--font-kai);
+  font-size: 15px;
+  letter-spacing: 2px;
+  color: var(--ink);
+  padding: 8px 6px;
+  background: linear-gradient(180deg, rgba(232, 222, 198, .95), rgba(216, 205, 180, .95));
+  box-shadow: 1px 2px 6px rgba(60, 45, 25, .25);
+  align-self: flex-start;
+}
+/* 竖排签里的墨漫：顺着签的形状晕，不要糊成横斑 */
+.jieqian .mo-man {
+  display: block;
+  width: 1.4em;
+  height: 3.4em;
+  min-width: 0;
+  border-radius: 4px;
+}
+
+/* ---------- 页「痕」：物的贴笺（拓印感） ---------- */
+.traces { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.trace-slip {
+  background: linear-gradient(180deg, rgba(235, 226, 202, .95), rgba(218, 207, 182, .95));
+  border-left: 2px solid rgba(31, 27, 22, .38);
+  box-shadow: 1px 2px 6px rgba(60, 45, 25, .28);
+  padding: 6px 12px;
+  font-family: var(--font-kai);
+  font-size: var(--fs-note);
+  line-height: 1.7;
+  color: var(--ink-2);
+  transform: rotate(.35deg);      /* 随手夹进去的，不必对齐（指令 §0.3） */
+}
+.trace-slip:nth-child(2n) { transform: rotate(-.3deg); }
+.trace-slip .w {
+  font-family: var(--font-brush);
+  font-size: 17px;
+  letter-spacing: 2px;
+  color: var(--ink);
+  margin-right: 8px;
+}
+/* 刀刻的：墨稍褪即「旧」，不再上位移滤镜（糊字，作者对版指出） */
+.trace-slip.is-carved .w { color: rgba(31, 27, 22, .72); }
+
+/* ---------- 动态痕迹（棠郡.痕迹）：与世界本来就有的静态锚点区分 ----------
+   新留的用朱色压边 + 一枚朱点，一眼看出「这一轮刚留下的」。
+   静态锚点（驷亭刻名、货栈酒渍）保持原样，不抢。 */
+.trace-slip.is-dyn { border-left-color: rgba(138, 90, 60, .55); }
+.trace-slip.is-new { border-left-color: rgba(168, 50, 42, .62); }
+.trace-slip.is-new .w::after {
+  content: "";
+  display: inline-block;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--zhu);
+  margin-left: 7px;
+  vertical-align: middle;
+  opacity: .9;
+}
+.trace-slip .fresh {
+  font-family: var(--font-song);
+  font-size: var(--fs-micro);
+  color: var(--zhu-text);
+  margin-left: 8px;
+}
+
+/* ---------- 页「痕」：人的墨点连线（线越淡越细 = 走样越多） ---------- */
+.rumor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: var(--rule-gap);
+}
+.rumor .rdot { width: 5px; height: 5px; border-radius: 50%; background: var(--ink); flex: none; }
+.rumor .rwhat {
+  font-family: var(--font-kai);
+  font-size: var(--fs-body);
+  color: var(--ink);
+  flex: none;
+}
+.rumor .rline {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(31, 27, 22, .5), rgba(31, 27, 22, .07));
+  min-width: 30px;
+}
+.rumor .rend { flex: none; }
+
+/* ---------- 流言三态：线的粗细浓淡 = 走样几分（指令 §四 页「痕」人栏） ----------
+   已证实（传得准）→ 线实而浓；未证实（还在走样）→ 线细而淡；
+   已破（传岔了）→ 线断成虚。走样程度不再是一团墨漫。 */
+.rumor.is-solid .rline {
+  height: 2px;
+  background: linear-gradient(90deg, rgba(31, 27, 22, .62), rgba(31, 27, 22, .20));
+}
+.rumor.is-faint .rline {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(31, 27, 22, .26), rgba(31, 27, 22, .03));
+}
+.rumor.is-broken .rline {
+  height: 1px;
+  background: repeating-linear-gradient(
+    90deg, rgba(31, 27, 22, .30) 0 3px, transparent 3px 7px);
+}
+.rumor .rend {
+  font-family: var(--font-song);
+  font-size: var(--fs-micro);
+  color: var(--ink-2);
+}
+
+/* ---------- 两栏（页「痕」用） ---------- */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 22px; }
+
+/* ---------- 排印收尾（2026-10-04 视觉评审）----------
+   断行别留孤字：正文、字段值、岁轮简介交给 pretty 断行（Chromium 支持，别的内核
+   忽略该声明），「…还没进来」不再把「来」单独甩到下一行。 */
+.prose,
+.rows .v,
+.rumor,
+.jieqian,
+.jinian,
+.cz-now,
+.cz-axis .v { text-wrap: pretty; }
+
+/* 窄屏题签缩一档：不然「贺氏货栈」会被拆成「贺氏货 / 栈」（420px 实测）。 */
+@media (max-width: 640px) {
+  .tiqian .place { font-size: 19px; letter-spacing: 1px; }
+}
+
+/* ---------- 留白：每页至少 35%（靠版心/天头/地脚与行距达成） ---------- */
+
+/* ---------- 黄历（2026-10-10 作者定案）----------
+   时·左页 时辰环下：今/明/后 三行，走 .rows/.row 体系；
+   吉凶等级朱墨有别：大吉/大凶朱、小吉/小凶浓墨、平淡墨；节日行朱题。 */
+.almanac {
+  width: 100%;
+  max-width: 340px;
+  margin-top: 4px;
+}
+.almanac .block-head { margin-bottom: 2px; }
+.almanac-row .k { min-width: 3em; color: var(--ink-2); font-size: 14px; }
+.almanac-row .v { font-size: 14px; }
+.almanac-row.is-大吉 .v,
+.almanac-row.is-大凶 .v { color: var(--zhu-text, #a8322a); }
+.almanac-row.is-平 .v { color: var(--ink-2); }
+.almanac-row.is-festival .v { color: var(--ink); }
+.almanac-fest {
+  font-family: var(--font-brush);
+  color: var(--zhu-text, #a8322a);
+  font-weight: normal;
+}

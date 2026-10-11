@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="12" viewBox="0 0 24 12">
+  <!-- 回纹（雷纹）· 页眉饰边单元，可横向平铺
+       形制：底线 → 上折 → 顶线 → 下折 → 底线，中嵌一个回勾。
+       自绘，无外部素材（工程指令 §6.2）。 -->
+  <g fill="none" stroke="#1f1b16" stroke-width="1.1" stroke-linejoin="miter" stroke-linecap="butt">
+    <path d="M0 11 H5 V4 H19 V11 H24"/>
+    <path d="M9 11 V7.5 H15 V11"/>
+  </g>
+</svg>

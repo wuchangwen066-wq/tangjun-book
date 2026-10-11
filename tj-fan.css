@@ -1,0 +1,404 @@
+/* ==================================================================
+   棠郡 · 折扇与人物志（阶段三）
+   ------------------------------------------------------------------
+   折扇是「物件」不是图表：轴在下向上展开，扇骨乌木带泥金描边，
+   扇面绢底，立绘入绢（叠纸纹、低饱和、边缘墨晕淡出），
+   未识者留空白绢面 + 朱色小印。
+
+   几何参数集中在下面这组变量里 —— 改扇的形态只动这里。
+================================================================== */
+
+.fan-stage {
+  /* 轴心与半径跟 SVG viewBox 对齐（2026-10-05 新几何：560×400，轴心 280,372） */
+  --pivot-x: 280px;
+  --pivot-y: 372px;
+  --fan-r-paper-in: 126px;   /* 纸面内缘（以下裸骨） */
+  --fan-r-paper-out: 291px;  /* 纸面外缘 */
+  --fan-r-out: 300px;        /* 骨长 */
+  --fan-dur: 520ms;          /* 扇页位移/悬停 */
+  position: relative;
+  width: 100%;
+  aspect-ratio: 560 / 400;   /* 高度随页宽派生，窄屏不挤扁 */
+  margin-top: 2px;
+}
+
+.fan { width: 100%; height: 100%; overflow: visible; display: block; }
+
+/* 每面扇：绕轴心转，transition 由 JS 改 transform 触发 */
+.fan-blade {
+  transform-box: view-box;
+  transform-origin: var(--pivot-x) var(--pivot-y);
+  transition: transform var(--fan-dur) var(--ease), opacity 320ms var(--ease);
+  cursor: pointer;
+  /* 点选时浏览器会给整块 SVG 元素描一个矩形焦点框，非常出戏 —— 一律去掉 */
+  outline: none;
+}
+.fan-blade:focus,
+.fan-blade:focus-visible { outline: none; }
+
+/* 整把扇的常驻轻摆（指令 §6）：只动 transform，幅度 ±0.9° */
+.fan-sway {
+  transform-box: view-box;
+  transform-origin: var(--pivot-x) var(--pivot-y);
+  animation: fanSway 7.6s ease-in-out infinite;
+}
+/* 指针一进扇面就停摆 —— 要点的东西不该一直在动（也让自动化测试点得准） */
+.fan-stage:hover .fan-sway,
+.fan-stage:focus-within .fan-sway { animation-play-state: paused; }
+@keyframes fanSway {
+  0%, 100% { transform: rotate(-0.9deg); }
+  50%      { transform: rotate(0.9deg); }
+}
+/* 入场：每页从 0°（收在中轴）转到自己的角度，依次延迟 45ms；from 只写起始帧，
+   终帧取元素当前的 inline rotate —— 所以不用把角度写进 CSS */
+.fan.is-opening .fan-blade {
+  animation: fanOpen 880ms cubic-bezier(.2, .8, .2, 1) both;
+  animation-delay: var(--open-delay, 0ms);
+}
+@keyframes fanOpen {
+  from { transform: rotate(0deg); }
+}
+/* 点按的墨色反馈（指令 §16）：一层墨色在扇页上晕开一下 */
+.fan-ink { opacity: 0; pointer-events: none; fill: rgba(31, 27, 22, .55); }
+.fan-blade.is-inking .fan-ink { animation: fanInk 300ms ease-out; }
+@keyframes fanInk {
+  0%   { opacity: 0; }
+  32%  { opacity: .42; }
+  100% { opacity: 0; }
+}
+/* 只有扇页接点击；骨、铆钉、投影一律不吃事件（指令 §7-5、§17） */
+.fan-ribs, .fan-pin-group, .fan-shadow, .fan-face-tex, .fan-face-fiber,
+.fan-face-pleat, .fan-face-edge, .fan-face-shade, .fan-face-rim,
+.fan-crease, .fan-shoulder, .fan-name-wash { pointer-events: none; }
+.fan-blade.is-blank { pointer-events: none; }     /* 空页＝等待书写的宣纸，不是按钮 */
+.fan-blade.is-filled { cursor: pointer; }
+
+/* 扇面：绢底 —— 要比书页深半档、暖半档，扇才从纸上立起来；
+   楔形描边是折叠的缝，五面合起来才读得出「一把扇」 */
+.fan-face-silk {
+  fill: #d3c3a2;
+  /* 页与页之间那道折缝：比旧版更细更淡 —— 纸是连着的，缝只是折痕 */
+  stroke: rgba(31, 27, 22, .26);
+  stroke-width: .8;
+}
+.fan-blade.is-filled:hover .fan-face-silk { fill: #dccfb2; }
+/* 宣纸纤维（CC0 纸纹）——很淡，只补一点"纸"的手感 */
+.fan-face-fiber { mix-blend-mode: multiply; opacity: .28; }
+/* 上缘暗角 */
+.fan-face-edge { pointer-events: none; }
+/* 骨线折痕：骨位置一条深线 + 旁边一线亮边（指令 §4.1-4） */
+/* 沿口内侧的受光细线 */
+.fan-rim-light {
+  fill: none; stroke: rgba(255, 248, 230, .20); stroke-width: 1; pointer-events: none;
+}
+.fan-crease {
+  fill: none; stroke: rgba(31, 27, 22, .17); stroke-width: .9; pointer-events: none;
+}
+/* 扇面绢纹（作者 2026-10-04：要真绢的纹理 —— 取自工程内宋绢本的空白处，
+   由 tools/make_fan_silk.py 生成；旧的自绘织格 tjSilkWeave 已删）。
+   瓦片近白 → multiply 只压出织面，不改绢色 */
+.fan-face-tex { mix-blend-mode: multiply; opacity: .92; pointer-events: none; }
+.fan-face-shade { pointer-events: none; }
+/* 折楞：相邻扇面一明一暗的交替渐变（tj-ren.js 按面奇偶选 tjPleatA/B），
+   五面合起来才读出「折」扇，而不是五片披萨 */
+.fan-face-pleat { pointer-events: none; }
+/* 沿口裱边：扇面外缘一道深色窄边（装裱的收束） */
+.fan-face-rim { fill: rgba(116, 88, 50, .13); pointer-events: none; }
+/* 扇肩：绢面内缘与扇骨相接的一道细线 */
+.fan-shoulder { fill: none; stroke: rgba(31, 27, 22, .16); stroke-width: 1; pointer-events: none; }
+
+/* 扇面题名 + 姓氏朱印（作者定：扇页不放立绘，改回人名＋印）
+   名用毛笔体竖排（一字一行，落在扇面中轴偏外），印落在名末下方偏内 */
+.fan-name {
+  font-family: var(--font-brush);
+  font-size: 21px;
+  fill: rgba(38, 30, 22, .88);
+  text-anchor: middle;
+  letter-spacing: 0;
+  pointer-events: none;
+}
+.fan-seal rect {
+  fill: rgba(168, 50, 42, .86);
+  stroke: rgba(120, 32, 26, .5);
+  stroke-width: .5;
+}
+.fan-seal text {
+  font-family: var(--font-brush);
+  font-size: 13.5px;
+  fill: #f6ece0;
+  text-anchor: middle;
+  pointer-events: none;
+}
+.fan-face-grain { mix-blend-mode: multiply; opacity: .22; }   /* 备用：纸纹层（现默认不上扇面） */
+
+/* 未识：干净的空白绢面（不写字、不留水渍 —— 页注：「未识者留空绢，不写字」）；
+   水渍层 2026-10-04 删：作者判为"绢上一块脏印" */
+
+/* 在场：实心朱点 */
+.fan-dot { fill: var(--zhu); pointer-events: none; }
+
+/* 扇骨：填的是**顺着骨方向的木纹 pattern**（tj-ren.js 每根骨一个），
+   大骨另叠髹漆高光；骨两侧的明暗由 pattern 自带的木纹承担 */
+.fan-rib { pointer-events: none; }
+.fan-rib-outer { filter: brightness(.94); }
+.fan-rib-sheen {
+  fill: rgba(240, 228, 205, .16);
+  pointer-events: none;
+}
+/* 骨两侧的细亮边：让裸骨有厚度（指令 §4.2 末条） */
+.fan-rib-edge { stroke: rgba(245, 236, 220, .18); stroke-width: .8; fill: none; }
+
+/* 铆钉：乌木钉 + 泥金箍 + 高光（识别折扇的关键） */
+.fan-pin { pointer-events: none; }
+.fan-pin-ring { fill: none; stroke: var(--nijin); stroke-width: 1; opacity: .55; pointer-events: none; }
+.fan-pin-cap { fill: rgba(246, 236, 224, .35); pointer-events: none; }
+
+/* ---------------- 人物页（人·传）：一个人占一整页 ----------------
+   由 tj-ren.js 填充；立绘是纯立绘 —— 不加遮罩、不加混色、不加滤镜。 */
+.cz-page { display: flex; flex-direction: column; }
+
+.cz-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.cz-name {
+  font-family: var(--font-brush);
+  font-size: 30px;
+  letter-spacing: 4px;
+  color: var(--ink);
+}
+.cz-id {
+  font-family: var(--font-song);
+  font-size: var(--fs-note);
+  color: var(--ink-2);
+  letter-spacing: 1px;
+}
+
+.cz-wrap {
+  display: grid;
+  grid-template-columns: 214px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+/* 立绘（2026-10-04 加入三视图）：
+   三张图裁成同一个 2:3 框（object-fit: cover），所以换图时版心高度不变、不跳；
+   点图换下一张的逻辑在 core/tj-ren.js，换法是叠一层淡入（.cz-art-fade）。 */
+/* 2026-10-07 修"点立绘先跳一下"：
+   ① 点击时 img 拿到焦点，浏览器默认焦点框（outline）会闪一下 —— 鼠标点击不画，
+      键盘 Tab 进来才画（:focus-visible），可达性不丢。
+   ② 淡入层原先也带 box-shadow，与原图两层投影叠在一起，淡入那一瞬投影变重，
+      看着像"框跳了一下" —— 层不再画投影，只由底图承担。
+   ③ 容器裁掉溢出，切换全程锁在立绘框内完成。 */
+.cz-art { position: relative; overflow: hidden; }
+.cz-art img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  object-position: center 30%;
+  box-shadow: 0 2px 8px rgba(40, 28, 14, .28);
+}
+/* 鼠标点击不给焦点框；键盘聚焦给一圈朱色细环，仍看得见焦点在哪 */
+.cz-art #czArt:focus { outline: none; }
+.cz-art #czArt:focus-visible {
+  outline: 2px solid rgba(168, 50, 42, .75);
+  outline-offset: 2px;
+}
+.cz-art #czArt[data-faces*="|"] { cursor: pointer; }
+.cz-art #czArt[data-faces*="|"]:hover { filter: brightness(1.03); }
+.cz-art-fade {
+  position: absolute;
+  /* 2026-10-08 修「点立绘出框架」：容器 D2 后带 6px padding，absolute 的 inset:0
+     铺的是 padding box（比底图大一圈 12px）—— 淡入时新图比底图大一圈、撤层又缩回，
+     看着像图出了框。与 ::before/::after 同样对齐 content box（inset:6px）。 */
+  inset: 6px;
+  object-fit: cover;
+  object-position: center 30%;
+  opacity: 0;
+  transition: opacity 320ms var(--ease);
+  pointer-events: none;
+}
+/* 淡入层不画投影（.cz-art img 的投影会盖到这里，需显式压掉） */
+.cz-art .cz-art-fade { box-shadow: none; }
+.cz-art-fade.is-in { opacity: 1; }
+/* 三张图的页码点（朱点＝当前那张） */
+.cz-faces {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  display: flex;
+  gap: 4px;
+  pointer-events: none;
+}
+.cz-faces i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(246, 236, 224, .55);
+  box-shadow: 0 0 0 1px rgba(31, 27, 22, .38);
+}
+.cz-faces i.is-on { background: var(--zhu); }
+@media (prefers-reduced-motion: reduce) {
+  .cz-art-fade { transition: none; }
+}
+.cz-vars { min-width: 0; }
+.cz-now {
+  font-family: var(--font-kai);
+  font-size: var(--fs-body);
+  line-height: var(--rule-gap);
+  color: var(--ink);
+}
+.cz-axes { margin-top: 4px; }
+.cz-axis {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  line-height: var(--rule-gap);
+}
+.cz-axis .k {
+  font-family: var(--font-brush);
+  font-size: 17px;
+  color: var(--ink-3);
+  min-width: 2.8em;
+}
+.cz-axis .v {
+  font-family: var(--font-kai);
+  font-size: var(--fs-body);
+  color: var(--ink);
+}
+.cz-axis .num {         /* 细看：原始数值以小字墨注出现 */
+  font-family: var(--font-song);
+  font-size: var(--fs-micro);
+  color: var(--ink-3);
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity 240ms var(--ease);
+}
+.cz-page.is-verbose .cz-axis .num { opacity: 1; }
+.cz-owe {
+  margin-top: 6px;
+  font-family: var(--font-kai);
+  font-size: var(--fs-note);
+  line-height: 1.7;
+  color: var(--ink-2);
+}
+
+/* 传页：内容会超出一页 —— 作者 2026-10-04 要求可上下滑动。
+   只给「人·传」左页的正文区开滚动（其它页保持原样），滚动条收细成一道墨色，
+   底部加一条纸色渐隐，提示下面还有。 */
+.page.page-left[data-tab="人·传"] .body {
+  min-height: 0;                 /* grid 子项默认 min-height:auto，不开这个滚不动 */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 8px;
+  /* 2026-10-05 作者：那道滚动条/文本光标不要 —— 滚动保留（底部有渐隐提示），
+     但把滚动条与 I 形光标都收掉，看着才像纸页而不是网页 */
+  scrollbar-width: none;
+  cursor: default;
+  position: relative;
+}
+.page.page-left[data-tab="人·传"] .body::-webkit-scrollbar { width: 0; height: 0; }
+.page.page-left[data-tab="人·传"] .body,
+.page.page-left[data-tab="人·传"] .body * { cursor: default; }
+.page.page-left[data-tab="人·传"] .body * { user-select: text; }
+/* 浏览器会把可滚动容器变成键盘可聚焦 → 聚焦时冒出一圈/一道插入符，一并收掉 */
+.page.page-left[data-tab="人·传"] .body:focus,
+.page.page-left[data-tab="人·传"] .body:focus-visible { outline: none; }
+.page.page-left[data-tab="人·传"] .body { caret-color: transparent; }
+/* 2026-10-05 作者：底部那道渐隐像发光的条子，删。滚动保留、滚动条已隐藏。 */
+
+/* 传页：一段一段的手抄体 */
+.cz-bio-p {
+  font-family: var(--font-kai);
+  font-size: var(--fs-body);
+  line-height: var(--rule-gap);
+  color: var(--ink);
+  text-indent: 2em;
+  background-image: repeating-linear-gradient(180deg,
+    transparent 0 calc(var(--rule-gap) - 1px),
+    rgba(31, 27, 22, .10) calc(var(--rule-gap) - 1px) var(--rule-gap));
+}
+
+/* ---------------- 美术精修（2026-10-06 D2）：立绘入纸 ----------------
+   GPT 精修清单第 4 项：像印在书页里的画像，不是贴上去的照片。
+   只做三件克制的事：统一色温的滤镜、装帧框＋纸色压边、内缘羽化。
+   （作者既有结论不推翻：立绘本身不加遮罩不加混色 —— 这里只动「框与纸」的关系。） */
+.cz-art {
+  padding: 6px;
+  background: linear-gradient(135deg,
+    rgba(113, 86, 53, .22), rgba(241, 227, 193, .42) 22%,
+    rgba(158, 125, 78, .18) 78%, rgba(84, 58, 35, .22));
+  box-shadow:
+    0 2px 8px rgba(40, 28, 14, .24),
+    inset 0 0 0 1px rgba(80, 59, 35, .26),
+    inset 0 0 12px rgba(71, 49, 27, .10);
+}
+.cz-art img,
+.cz-art-fade {
+  filter: sepia(.07) saturate(.9) contrast(.95) brightness(.98);
+}
+.cz-art #czArt[data-faces*="|"]:hover {
+  filter: sepia(.07) saturate(.9) contrast(.95) brightness(1.015);
+}
+.cz-art::before {           /* 纸色压边 + 底部暖反光（画像印在纸上） */
+  content: "";
+  position: absolute;
+  inset: 6px;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgba(113, 81, 43, .09), transparent 36%, rgba(246, 224, 176, .06)),
+    radial-gradient(ellipse at 50% 106%, rgba(122, 73, 38, .16), transparent 58%);
+  mix-blend-mode: multiply;
+}
+.cz-art::after {            /* 内缘羽化：让图与纸互相吃进一点 */
+  content: "";
+  position: absolute;
+  inset: 6px;
+  z-index: 4;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 16px rgba(69, 48, 29, .16),
+    inset 0 0 2px rgba(255, 243, 205, .32);
+}
+/* 三视图页码点：圆点改小印（微方、朱砂、外圈一圈淡印晕） */
+.cz-faces { z-index: 5; }
+.cz-faces i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50% 50% 50% 2px;
+  transform: rotate(45deg);
+  background: rgba(246, 236, 224, .6);
+  box-shadow: 0 0 0 1px rgba(31, 27, 22, .35);
+}
+.cz-faces i.is-on {
+  background: var(--zhu);
+  box-shadow:
+    0 0 0 1.5px rgba(113, 37, 31, .55),
+    0 0 0 3.5px rgba(168, 50, 42, .14);
+}
+
+/* 页内小按钮（返 / 细看） */
+.page-btn {
+  font: inherit;
+  font-family: var(--font-song);
+  font-size: var(--fs-micro);
+  padding: 3px 10px;
+  border: 1px solid rgba(31, 27, 22, .22);
+  background: rgba(255, 250, 235, .35);
+  color: var(--ink-2);
+  cursor: pointer;
+  letter-spacing: 1px;
+}
+.page-btn:hover { color: var(--ink); border-color: rgba(31, 27, 22, .42); }
+.page-btn.is-on { background: rgba(168, 50, 42, .12); color: var(--zhu-text); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fan-blade { transition: none; }
+  .fan-sway { animation: none; }                 /* 关常驻轻摆 */
+  .fan.is-opening .fan-blade { animation: none; }/* 关入场展开 */
+  .fan-blade.is-inking .fan-ink { animation: none; }
+}

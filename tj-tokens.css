@@ -1,0 +1,112 @@
+/* ==================================================================
+   棠郡状态栏 · 尺度与色板令牌（新「一册」体系）
+   ------------------------------------------------------------------
+   本文件只管「尺度」与「色」：字号、行距、版式尺度、色板、氛围变量。
+   材质配方在 tj-material.css，装配与响应式在 tj-layout.css。
+   三层互不干涉（skill §2 纪律）：改密度动这里，换风格动材质，改版面动装配。
+
+   色板来自工程指令 §3.1（DESIGN.md §1），硬约束：
+     金只上细线与选中态，朱只上印与关键节点，正文 ≥16px，对比 ≥4.5:1。
+================================================================== */
+
+:root {
+  /* ---- 桌 ---- */
+  --desk-0: #14110e;
+  --desk-1: #1d1812;
+
+  /* ---- 纸 ---- */
+  --paper: #d9cfb8;
+  --paper-hi: #e6dcc4;
+  --paper-lo: #bfb298;
+  --paper-edge: #a89c80;
+
+  /* ---- 墨 ---- */
+  --ink: #1f1b16;      /* 焦墨：正文（对纸约 11:1） */
+  --ink-2: #5a5244;    /* 淡墨：次要文字（约 5:1） */
+  --ink-3: #7a7060;    /* 灰墨：仅装饰或大字，禁用于正文 */
+
+  /* ---- 朱 ---- */
+  --zhu: #a8322a;
+  --zhu-text: #8f2a23; /* 朱字批注（约 5.4:1） */
+
+  /* ---- 石青 / 石绿 / 藤黄 / 赭石 / 泥金 ---- */
+  --qing: #3d6670;
+  --qing-lo: #7fa3a3;
+  --lv: #5b7f66;
+  --teng: #c9a24a;     /* 灯火：只用于灯晕与极少数高光 */
+  --zhe: #8a5a3c;
+  --nijin: #b8955a;    /* 泥金线：哑光，比纯金暗 */
+
+  /* ---- 字体栈（子集化后本地加载，见 tj-fonts.css） ---- */
+  --font-kai: "LXGW WenKai Screen", "KaiTi", "STKaiti", serif;      /* 正文 */
+  --font-brush: "Ma Shan Zheng", "KaiTi", "STKaiti", serif;         /* 题字 */
+  /* 小字。**不要**把 "Noto Serif SC" 排在首位：随包那 101 个分片实测内部是
+     ExtraLight（超细），与声明里的 400 不符 —— 小字会细弱得像没上字体。
+     改用系统宋体（Windows SimSun / macOS Songti），本地即得正体宋体。 */
+  --font-song: "Songti SC", "SimSun", "Noto Serif SC", serif;       /* 小字 */
+
+  /* ---- 字号阶梯（正文下限 16px，硬约束） ---- */
+  --fs-body: 17px;      /* 正文楷 */
+  --fs-body-lh: 1.9;
+  --fs-title: 44px;     /* 页名（毛笔）40–56 */
+  --fs-head: 21px;      /* 区块题（毛笔）20–22 */
+  /* 小字宋。作者对版（2026-10-04）：13px 的系统宋体在 100% 缩放下
+     笔画只有约 1 个设备像素，被抗锯齿洗成发丝；浏览器放大到 125% 后
+     笔画占到 1.5–2 像素才"刚刚好"（实测：三档缩放下字体与字号完全相同，
+     差别只在像素密度）。故把这一档抬到 15px，等效于他认可的观感。 */
+  --fs-note: 15px;      /* 批注朱字 / 小字宋 */
+  --fs-micro: 12px;     /* 页码、出处、数字 */
+
+  /* ---- 版式尺度（古籍版式：天头 / 地脚 / 版心 / 版框） ---- */
+  --page-w: 520px;                    /* 单页宽（layout.css 会按视口重算） */
+  --page-ratio: 1.36;                 /* 页高 = 宽 × 此值 */
+  --tian-tou: 74px;                   /* 天头：眉批区 */
+  --di-jiao: 56px;                    /* 地脚：页码 */
+  --banxin-w: 46px;                   /* 版心（中缝）宽 */
+  --frame-out: 3px;                   /* 版框外粗 */
+  --frame-in: 1px;                    /* 版框内细 */
+  --frame-gap: 5px;                   /* 双边间距 */
+  --col-w: 34px;                      /* 乌丝栏界行宽（仅「时」页竖栏用） */
+  --rule-gap: 32px;                   /* 横条界行的行距 —— 与正文行高同源 */
+
+  /* ---- 间距 ---- */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 18px;
+  --sp-5: 26px; --sp-6: 36px; --sp-7: 52px;
+
+  /* ---- 氛围：灯与暗角（工程指令 §5，起点值，目视调） ---- */
+  --lx: 28%; --ly: 22%;
+  --glow: .22;
+  --dark: .45;
+  --paper-tint: rgba(255, 248, 230, 0);   /* 纸色偏移（时辰档改它） */
+  --lamp-color: rgba(255, 214, 140, var(--glow));
+
+  /* ---- 动效（指令 §3.6） ---- */
+  --ease: cubic-bezier(.22, .8, .2, 1);
+  --t-turn: 700ms;
+  --t-hour: 2400ms;
+}
+
+/* ---- 时辰五档：只改氛围变量，不改版式（DESIGN.md §2） ---- */
+[data-hour="晨"] { --glow: .10; --dark: .34; --paper-tint: rgba(200, 220, 225, .07); --lamp-color: rgba(210, 226, 240, var(--glow)); }
+[data-hour="昼"] { --glow: .05; --dark: .26; --paper-tint: rgba(255, 250, 235, .05); }
+[data-hour="暮"] { --glow: .18; --dark: .42; --paper-tint: rgba(214, 150, 90, .10); --lamp-color: rgba(255, 190, 120, var(--glow)); }
+[data-hour="夜"] { --glow: .34; --dark: .62; --paper-tint: rgba(90, 70, 40, .16); }
+[data-hour="深夜"] { --glow: .16; --dark: .72; --paper-tint: rgba(60, 50, 34, .22); }
+
+/* ---- 时辰过渡（阶段 6）----
+   未注册的自定义属性不可动画 —— 渐变引用 var() 会在换档瞬间整个跳变
+   （实测：transition: background 对 var 驱动的渐变完全无效）。
+   用 @property 注册成 number/color 后，属性本身可以 transition，
+   引用它的渐变逐帧重算 —— 2.4s 过渡才真正发生。
+   不支持 @property 的环境退化为原来的瞬时切换，无副作用。 */
+@property --glow { syntax: "<number>"; inherits: true; initial-value: .22; }
+@property --dark { syntax: "<number>"; inherits: true; initial-value: .45; }
+@property --paper-tint { syntax: "<color>"; inherits: true; initial-value: rgba(255, 248, 230, 0); }
+@property --lamp-color { syntax: "<color>"; inherits: true; initial-value: rgba(255, 214, 140, .22); }
+html {
+  transition:
+    --glow var(--t-hour) linear,
+    --dark var(--t-hour) linear,
+    --paper-tint var(--t-hour) linear,
+    --lamp-color var(--t-hour) linear;
+}
