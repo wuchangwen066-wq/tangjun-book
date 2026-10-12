@@ -34,12 +34,7 @@
 (function () {
   'use strict';
 
-  var _bs = (document.currentScript && document.currentScript.src) || '';
-    var _bd = _bs ? _bs.replace(/[^/]*$/, '') : '';
-    /* 2026-10-11：srcdoc 里 <base> 不生效，构建期只把静态标签改成绝对 URL。
-       运行时拼的相对路径（本行旧值）请求发不出去 → 桌案整片白。
-       改为按本脚本自身 URL 推导站点根，Host 换了也不用改代码。 */
-    var IMG = { desk: _bd + 'position-ref.webp' };
+  var IMG = { desk: 'assets/桌案/position-ref.webp' };
   var RATIO = 2.7806;                /* 2091/752；条带高度随宽度自然得出 */
 
   /* ---------- 光影关键帧：集中在此，方便手调 ---------- */
@@ -262,6 +257,7 @@
           '<span class="tj-t tj-v" data-k="time">—</span>' +
           '<span class="tj-row"><span class="tj-k">在</span><span class="tj-v" data-k="place">—</span></span>' +
           '<span class="tj-row"><span class="tj-k">天</span><span class="tj-v" data-k="sky">—</span></span>' +
+          '<span class="tj-row"><span class="tj-k">钱</span><span class="tj-v" data-k="money">—</span></span>' +
         '</div>' +
       '</div>';
     app.parentNode.insertBefore(wrap, app);
@@ -307,14 +303,16 @@
 
   /* ---------- 信息笺：与册子同一份 state ---------- */
   function setSlip(state) {
-    var t = state && state.棠郡 && state.棠郡.时地;
+    var tj = state && state.棠郡;
+    var t = tj && tj.时地;
     if (!t) return;
+    /* 随身现银：变量里是「三两零二百文」式字符串，原样显示（不做换算） */
     var next = {
       time: [t.年月日, t.时辰].filter(Boolean).join(' · ') || '—',
       place: [t.地区, t.地点].filter(Boolean).join('·') || '—',
       sky: t.天气 || '—',
-    };
-    Object.keys(next).forEach(function (k) {
+      money: (tj.钱 && tj.钱.现银) || '—',
+    };    Object.keys(next).forEach(function (k) {
       var el = document.querySelector('.tj-slip .tj-v[data-k="' + k + '"]');
       if (!el || el.textContent === next[k]) return;
       el.classList.add('is-swap');
