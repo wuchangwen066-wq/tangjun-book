@@ -4,7 +4,9 @@
    「首次开册」的判定：
      · 浮窗模式（卡内）：整页即册子，加载后即视为开册，延时亮笺；
      · 横幅/原位展开：由 tj-banner.js 的 setOpen(true) 调 TJFanli.onBookOpen()。
-   收起：点笺任意处 / Esc / Enter。本次页面会话内只亮一次（收起后不再复现）。
+   收起：点笺任意处 / Esc / Enter。**首次开册亮一次**：收起后写
+   localStorage（tj_fanli_dismissed_v1），跨刷新 / 重开书不再复现；
+   localStorage 不可用（隐私模式等）时降级为仅本次会话内不亮。
    纪律同全书：普通 script，不摸变量树，动效只走 opacity。
 ================================================================== */
 (function () {
@@ -17,8 +19,17 @@
   var dismissed = false;
   var HIDE_MS = 360;            /* 与 css 过渡 320ms 对齐，略留余量 */
 
+  /* ---- 凡例只亮一次（作者设定）---- */
+  var LS_KEY = 'tj_fanli_dismissed_v1';
+  function readFlag() {
+    try { return window.localStorage.getItem(LS_KEY) === '1'; } catch (e) { return false; }
+  }
+  function writeFlag() {
+    try { window.localStorage.setItem(LS_KEY, '1'); } catch (e) {}
+  }
+
   function show() {
-    if (shown || dismissed) return;
+    if (shown || dismissed || readFlag()) return;
     shown = true;
     slip.hidden = false;
     /* 双 raf：先落 hidden=false 的初始透明态，再挂 is-on，过渡才走得动 */
@@ -30,6 +41,7 @@
   function dismiss() {
     if (dismissed) return;
     dismissed = true;
+    writeFlag();   /* 落盘：之后任何刷新 / 重开都不再亮 */
     slip.classList.remove('is-on');
     setTimeout(function () { slip.hidden = true; }, HIDE_MS);
   }
