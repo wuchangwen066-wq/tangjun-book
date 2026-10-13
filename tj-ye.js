@@ -55,12 +55,23 @@
   var formMode = '主';          /* 落笔目标槽 */
   var formPath = '';           /* 当前选的路（商/仕/...） */
   var formOpt = '';            /* 二级已选（业态/所依/阵营） */
-  var formInit = '旧例';        /* v2.1 修五：初始化方式（旧例=系统自带身份 / 白纸=玩家自由推进） */
-  var subOpen = false;         /* 右页副业折叠 */
+  /* v2.2（2026-10-12）：删「旧例/白纸」初始化二选——择业只定所向，槽位框架空着显「未记」 */
+  var subOpen = true;          /* v2.2：右页副业默认展开（折叠态曾被用户当成『副业被吞』） */
   var devActive = false, devState = null, devOpen = false;
   var devDay = 3, devJing = '平稳', devMainId = '商', devSubId = '仕';
   var cur = null;              /* {S, D} 渲染缓存，点击处理器用 */
+  var reselectMain = false;    /* v2.2：重挑主业态——点已选主业进的；此态点别的路=换主业 */
   var actSeq = 0;              /* 全局点击序号：桥响应迟到时以序号判断是否过期（防迟到 preview 覆盖 dev 态） */
+
+  /* ---- v2.2：主业「志向未落」判定 ----
+     名号/根基/在办/人手/声望/进项/出项/牵累 八槽全空（子型=择业二级、
+     景况=落笔默认，都不算剧情写入）→ 可回择业页自由更换；
+     任一非空 = 玩家已写入信息 → 锁定主业，只能另择副业。 */
+  function mainEmpty(主) {
+    if (!主 || 主.身份 === '未定' || 主.身份 === '闲身') return false;
+    return ['名号', '根基', '在办', '人手', '声望', '进项', '出项', '牵累']
+      .every(function (k) { return !String(主[k] == null ? '' : 主[k]).trim(); });
+  }
 
   /* ---- v2.1 修五：前置署名 ----
      名字不进变量树（不新增键），存 sessionStorage（同源楼层共享，会话内有效），
@@ -152,10 +163,11 @@
     var 主 = D.主, 副 = D.副;
     var 主id = 主 ? 主.身份 : '', 副id = 副 ? 副.身份 : '';
     var lead = el('yeLead');
-    if (S === 'S0') lead.textContent = '立身未定。六路皆在，择一而行。';
+    if (S === 'S0') lead.textContent = LN.S0左;
     else if (S === 'S4') lead.textContent = LN.S4;
     else if (S === 'S1') lead.textContent = draftS1 ? W.草稿 : '闲身已在。要换路，先解。';
-    else if (S === 'S2') lead.textContent = '主业已立。可再择一路为副业。';
+    else if (S === 'S2') lead.textContent = reselectMain ? '重择主业：另点一路落笔；点原路取消。'
+      : (mainEmpty(主) ? LN.S2可换 : '主业已立。可再择一路为副业。');
     else lead.textContent = '一主一副，两槽皆满。';
 
     /* v2.1 修五：署名条——只 S0 未署名时摊开；已记/暂不/非S0 收起 */
@@ -188,12 +200,29 @@
       var p = b.dataset.ye;
       var chosen = (S !== 'S0' && p === 主id) || (副id && p === 副id && S !== 'S0');
       var locked;
+      /* v2.2 交互：
+         · S2 常态：点未选路 = 选副业；点已选路 = 进「重挑主业」（仅志向未落时）
+         · 重挑态：所有路可点，点的就是新主业
+         · 已写入信息（!mainEmpty）：已选路锁死，不能重挑 */
+      var 可重挑 = (S === 'S2' && chosen && mainEmpty(D.主));
       if (S === 'S1') locked = draftS1 ? false : (p !== '闲身');
       else if (S === 'S3') locked = !chosen;
+      else if (S === 'S2' && reselectMain) locked = false;
+      else if (S === 'S2') locked = chosen && !可重挑;
       else locked = chosen;
       b.classList.toggle('is-chosen', chosen && !(S === 'S1' && draftS1));
       b.classList.toggle('is-locked', locked);
       b.setAttribute('aria-disabled', locked && !chosen ? 'true' : 'false');
+      /* v2.2：重挑态给已选项加角标 */
+      var chip2 = b.querySelector('.ye-entry-reselect');
+      if (S === 'S2' && reselectMain && chosen && !chip2) {
+        chip2 = document.createElement('span');
+        chip2.className = 'ye-entry-reselect';
+        chip2.textContent = '重择';
+        b.appendChild(chip2);
+      } else if (chip2 && !(S === 'S2' && reselectMain && chosen)) {
+        chip2.parentNode.removeChild(chip2);
+      }
       /* 闲身上的「取消」（S1 且非草稿） */
       var chip = b.querySelector('.ye-entry-cancel');
       if (S === 'S1' && !draftS1 && p === '闲身' && !chip) {
@@ -231,16 +260,21 @@
   function renderTask(D) {
     var box = el('yeTask');
     var 主 = D.主, t = D.任务, j = D.节律 || {};
+    /* B7（2026-10-12）：兼理角标——开关在择业页，S2/S3 主视图原先看不见状态。
+       兼理=是 且 副业在业 → 任务区顶常驻「兼理中 · 副X」（词取 lexicon 现成）。 */
+    var jl = (D.兼理 && D.副 && D.副.身份 && D.副.身份 !== '未定')
+      ? '<div class="ye-jl-badge" title="' + esc(L.YE.兼理.句) + '">' +
+        L.YE.兼理.开 + ' · 副' + esc(D.副.身份) + '</div>' : '';
     var 主ok = 主 && 主.身份 && 主.身份 !== '未定' && 主.身份 !== '闲身';
     if (!主ok || !t || !t.状态 || t.状态 === '无') {
-      box.innerHTML = '<div class="ye-idle">近日无事。平安喜乐。</div>';
+      box.innerHTML = jl + '<div class="ye-idle">近日无事。平安喜乐。</div>';
       return;
     }
     var 事由 = String(t.事由 || '—'), 类型 = t.类型 === '急' ? '急' : '常';
     if (t.状态 === '待办') {
       var rem = (j.剩余日 != null) ? j.剩余日 : ((t.止日序 | 0) - (j.日序 | 0));
       var remTxt = rem <= 0 ? '今日止' : '余' + num2cn(rem) + '日';
-      box.innerHTML =
+      box.innerHTML = jl +
         '<div class="ye-taskcard' + (类型 === '急' ? ' is-urgent' : '') + '" title="' +
         esc(事由 + '｜' + remTxt + '｜' + (t.来由 || '') + '｜' + (t.后果 || '')) + '">' +
         '<div class="tc-top"><span class="tc-type">' + 类型 + '</span>' +
@@ -249,7 +283,7 @@
         '<div class="tc-line">' + esc(t.来由 || '') + '</div>' +
         '<div class="tc-line tc-cons">误了：' + esc(t.后果 || '—') + '</div></div>';
     } else {
-      box.innerHTML =
+      box.innerHTML = jl +
         '<div class="ye-taskcard is-faded"><div class="tc-top"><span class="tc-type">' +
         esc(t.状态) + '</span><span class="tc-title">' + esc(事由) + '</span></div>' +
         '<div class="tc-line">' + (t.状态 === '已逝' ? '误了。后果已落。' : '办成了。') + '</div></div>';
@@ -365,11 +399,15 @@
     var rows = '';
     if (主 && 主.身份 !== '闲身') {
       var titles = L.YE.titles[身份] || {};
+      /* v2.2：九槽全画行——空槽显「未记」（框架在，值玩家自己玩出来）。
+         修「单职业不显示字段」：旧版空槽不画行，选一个职业右页只剩标题。 */
       ['子型', '名号', '根基', '在办', '人手', '声望', '进项', '出项', '牵累'].forEach(function (slot) {
         var val = String(主[slot] == null ? '' : 主[slot]).trim();
-        if (!val) return;   /* 志向未落之槽，留白不画行 */
-        rows += '<div class="row"><span class="k">' + esc(titles[slot] || slot) +
-          '</span><span class="v">' + clipCell(主[slot], 12) + '</span></div>';
+        /* v2.2：真实身份未写入（mainEmpty）时，所依（子型）也只显「未记」——
+           择业选的只是方向，不是既成事实 */
+        if (slot === '子型' && mainEmpty(主)) val = '';
+        rows += '<div class="row' + (val ? '' : ' is-empty') + '"><span class="k">' + esc(titles[slot] || slot) +
+          '</span><span class="v">' + (val ? clipCell(主[slot], 12) : '<span class="v-empty">' + L.YE.未记 + '</span>') + '</span></div>';
       });
     }
     el('yeSlots').innerHTML = rows;
@@ -406,7 +444,6 @@
   /* ============ 落笔表单 ============ */
   function openForm(mode, path) {
     formMode = mode; formPath = path; formOpt = '';
-    formInit = (path === '闲身') ? '' : '旧例';   /* v2.1 修五：初始化方式，默认依册中旧例 */
     el('yeFormTitle').textContent = '落笔 · ' + path;
     var modeEl = el('yeFormMode');
     modeEl.hidden = mode !== '副';
@@ -426,15 +463,9 @@
     } else {
       subEl.hidden = true; optsEl.hidden = true; optsEl.innerHTML = '';
     }
-    /* v2.1 修五：初始化方式——只主表单非闲身有（副业随主，闲身无起法） */
+    /* v2.2：初始化二选已删（壳内 #yeFormInit 一并下线）——常驻隐藏兜底 */
     var initRow = el('yeFormInit');
-    if (initRow) {
-      var showInit = (mode === '主' && path !== '闲身');
-      initRow.hidden = !showInit;
-      if (showInit) [].forEach.call(initRow.querySelectorAll('.ye-opt-init'), function (b) {
-        b.classList.toggle('is-on', b.dataset.init === formInit);
-      });
-    }
+    if (initRow) initRow.hidden = true;
     /* v2.1 修五：名号字段——只江湖（名号）/修（道号）保留并带旁注；商/仕/闲身不设 */
     var nameRow = el('yeFormNameRow'), nameLabel = el('yeFormNameLabel'), nameHint = el('yeFormNameHint');
     var 注 = L.YE.名号注[path];
@@ -485,7 +516,7 @@
     var done = function (ok, payload) {
       if (actSeq !== mySeq) return;   /* 迟到响应：用户已接管（工房/书签/其他落笔），丢弃 */
       if (payload) window.TJ_STATE = payload;
-      draftS1 = false; view = 'auto'; s4Hint = false;
+      draftS1 = false; view = 'auto'; s4Hint = false; reselectMain = false;
       closeForm();
       renderYe(window.TJ_STATE);
       var mp = document.querySelector('.page[data-tab="业"] .meipi');
@@ -522,7 +553,6 @@
     if (子型 && M.子型[path]) seg += M.子型[path](子型);
     if (名号) seg += (path === '修' ? '，道号「' : '，自号「') + 名号 + '」';
     parts.push(seg);
-    if (path !== '闲身' && formMode === '主') parts.push(M.起法[formInit] || M.起法.旧例);
     return parts.join('；').replace('；', '，') + '。';
   }
   /* ---- v2.1 修五：发择业消息（桥侧 triggerSlash /send + /trigger）----
@@ -673,8 +703,17 @@
         openForm('主', path);
         return;
       }
-      if (b.classList.contains('is-chosen') || b.classList.contains('is-locked')) return;
-      openForm((S === 'S2' || S === 'S3') ? '副' : '主', path);
+      var chosen2 = b.classList.contains('is-chosen');
+      /* v2.2：点已选路（S2 且志向未落）= 进/退「重挑主业」态 */
+      if (chosen2 && S === 'S2' && cur.D && mainEmpty(cur.D.主)) {
+        reselectMain = !reselectMain;
+        renderYe(lastState);
+        return;
+      }
+      if (chosen2 || b.classList.contains('is-locked')) return;
+      /* v2.2：重挑态点任何路 = 换主业；否则 S2 点未选路 = 选副业（原设计） */
+      var mode = ((S === 'S2' && !reselectMain) || S === 'S3') ? '副' : '主';
+      openForm(mode, path);
     });
 
     /* 兼理开关：实况走数据桥（同落笔惯例）；dev 态改 devState；无桥环境改本地态。 */
@@ -720,15 +759,7 @@
         x.classList.toggle('is-on', x === b);
       });
     });
-    /* v2.1 修五：初始化方式二选（互斥高亮；hover 简介在 title） */
-    el('yeFormInit').addEventListener('click', function (e) {
-      var b = e.target.closest('.ye-opt-init');
-      if (!b) return;
-      formInit = b.dataset.init || '旧例';
-      [].forEach.call(el('yeFormInit').querySelectorAll('.ye-opt-init'), function (x) {
-        x.classList.toggle('is-on', x === b);
-      });
-    });
+    /* v2.2：初始化二选已删（壳内 #yeFormInit 一并下线） */
     /* v2.1 修五：前置署名（记下 / 暂不署名；不卡死） */
     el('yeSignOk').addEventListener('click', function () {
       var n = (el('yeSignName').value || '').trim().slice(0, 8);
