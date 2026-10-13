@@ -110,6 +110,20 @@ window.TJState = (function () {
   /* ---- 写变量（v1.1 择业/改槽）：发 kind:'write'，桥白名单校验后写 stat_data，
      回同款 snapshot（= 新真值）。超时/失败 = 没有桥（独立预览），调用方用本地态兜底。 ---- */
   function writeBridge(mutate, mesid, timeoutMs) {
+    /* v2.2（2026-10-12）：数组 mutate 串行逐条写。
+       桥的 onWrite 只认单个 {path,value} 对象——旧版把数组整个 post 过去，
+       被白名单整批拒（write-rejected）→ 择业落笔/兼理切换从来没真正写入变量，
+       全走 previewCommit 兜底（生产里还显示「此册为预览，落笔未记入」）。
+       逐个发送、以最后一条的 snapshot 为成功态；任一条被拒整体 reject。 */
+    if (Array.isArray(mutate)) {
+      var chain = Promise.resolve(), last = null;
+      mutate.forEach(function (m) {
+        chain = chain.then(function () {
+          return writeBridge(m, mesid, timeoutMs).then(function (r) { last = r; });
+        });
+      });
+      return chain.then(function () { return last; });
+    }
     return new Promise(function (resolve, reject) {
       /* 无对端快速失败（同 fromBridge）：独立预览下不等超时，立即走预览兜底。 */
       if (window.parent === window) { reject(new Error('bridge no-peer')); return; }
