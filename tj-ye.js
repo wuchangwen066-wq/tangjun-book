@@ -173,7 +173,9 @@
     else if (S === 'S4') lead.textContent = LN.S4;
     else if (S === 'S1') lead.textContent = draftS1 ? W.草稿 : '闲身已在。要换路，先解。';
     else if (S === 'S2' || S === 'S3') lead.textContent = 重择 ? W.重择
-      : (S === 'S2' ? '主业已立。可再择一路为副业。' : '一主一副，两槽皆满。');
+      : (mainEmpty(主)
+        ? '此业尚虚——志已立而身未立。点「取消」另择；立身之后，方可择副业。'
+        : (S === 'S2' ? '主业已立。可再择一路为副业。' : '一主一副，两槽皆满。'));
 
     /* v2.1 修五：署名条——只 S0 未署名时摊开；已记/暂不/非S0 收起 */
     var sign = el('yeSign');
@@ -210,6 +212,7 @@
          · 常态：S2 已选路锁、未选路=副业；S3 主副已选、余路锁 */
       if (S === 'S1') locked = draftS1 ? false : (p !== '闲身');
       else if (重择) locked = false;
+      else if (mainEmpty(D.主)) locked = true;   /* 2026-10-13 作者定：身未立 → 副业不开放，唯主业可取消重择 */
       else if (S === 'S3') locked = !chosen;
       else locked = chosen;
       b.classList.toggle('is-chosen', chosen && !(S === 'S1' && draftS1));
@@ -397,6 +400,8 @@
 
     var seal = el('yeChosenSeal');
     seal.hidden = !(D.real && 主);
+    /* 2026-10-13 作者定：志向未落（九槽全空）= 已立志；填入信息后才算已立身 */
+    seal.textContent = (主 && mainEmpty(主)) ? '已立志' : '已立身';
 
     /* 主业完整栏（子型/名号/根基/在办/人手/声望/进项/出项/牵累）
        v2.1 修三：闲身不拟定任何身份/职位/收入——九槽不渲染，右页只余标题与钱。
@@ -428,8 +433,9 @@
       el('yeSubRows').hidden = !subOpen;
       if (subOpen) {
         var sr = '';
+        var stitles = L.YE.titles[副.身份] || {};   /* 2026-10-13 修：副业行名也用各业皮名（旧版硬编码键名，选任何副业都显「根基」） */
         [['名号', '名号'], ['根基', '根基'], ['在办', '在办']].forEach(function (pair) {
-          sr += '<div class="row"><span class="k">' + pair[0] +
+          sr += '<div class="row"><span class="k">' + (stitles[pair[0]] || pair[0]) +
             '</span><span class="v">' + clipCell(副[pair[1]], 12) + '</span></div>';
         });
         el('yeSubRows').innerHTML = sr;
