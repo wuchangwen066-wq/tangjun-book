@@ -60,7 +60,7 @@
   var devActive = false, devState = null, devOpen = false;
   var devDay = 3, devJing = '平稳', devMainId = '商', devSubId = '仕';
   var cur = null;              /* {S, D} 渲染缓存，点击处理器用 */
-  var mainDraft = false;        /* 主业「取消→重择」态（2026-10-13 作者定稿，仿闲身草稿制） */
+  /* v2.3（2026-10-13 作者再定）：取消制升级为「清档回归」——点取消直接清主槽，mainDraft 重择态已废 */
   var actSeq = 0;              /* 全局点击序号：桥响应迟到时以序号判断是否过期（防迟到 preview 覆盖 dev 态） */
 
   /* ---- v2.2：主业「志向未落」判定 ----
@@ -162,20 +162,17 @@
   function renderChoose(D, S) {
     var 主 = D.主, 副 = D.副;
     var 主id = 主 ? 主.身份 : '', 副id = 副 ? 副.身份 : '';
-    var 主id真 = 主id;   /* 不被重择态清空的真身：取消 chip 靠它定位 */
-    /* 作者 2026-10-13 定稿（全面替换「未落初态」旧机制，仿闲身取消制）：
-       主业条目带「取消」chip——点它进重择态：全页无已选标记（颜色回归原版），
-       点任何路=落笔新主业；不点取消 → 点其他路=选副业。重择中点原路=复归。 */
-    var 重择 = mainDraft && (S === 'S2' || S === 'S3');
-    if (重择) { 主id = ''; 副id = ''; }
+    var 主id真 = 主id;   /* 取消 chip 靠它定位 */
+    /* v2.3（2026-10-13 作者定）：主业条目带「取消」chip——点它=清档回归
+       （主槽清未定，S2→S0 六路重开 / S3→S4 副业可升主）；
+       不点取消 → 点其他路=选副业（身未立时副业锁，只能取消重择）。 */
     var lead = el('yeLead');
     if (S === 'S0') lead.textContent = LN.S0左;
     else if (S === 'S4') lead.textContent = LN.S4;
     else if (S === 'S1') lead.textContent = draftS1 ? W.草稿 : '闲身已在。要换路，先解。';
-    else if (S === 'S2' || S === 'S3') lead.textContent = 重择 ? W.重择
-      : (mainEmpty(主)
-        ? '此业尚虚——志已立而身未立。点「取消」另择；立身之后，方可择副业。'
-        : (S === 'S2' ? '主业已立。可再择一路为副业。' : '一主一副，两槽皆满。'));
+    else if (S === 'S2' || S === 'S3') lead.textContent = mainEmpty(主)
+      ? '此业尚虚——志已立而身未立。点「取消」另择；立身之后，方可择副业。'
+      : (S === 'S2' ? '主业已立。可再择一路为副业。' : '一主一副，两槽皆满。');
 
     /* v2.1 修五：署名条——只 S0 未署名时摊开；已记/暂不/非S0 收起 */
     var sign = el('yeSign');
@@ -208,10 +205,9 @@
       var chosen = (S !== 'S0' && p === 主id) || (副id && p === 副id && S !== 'S0');
       var locked;
       /* 2026-10-13 定稿（仿闲身）：
-         · 重择态（点了主业取消）→ 六路皆可点，点的就是新主业
-         · 常态：S2 已选路锁、未选路=副业；S3 主副已选、余路锁 */
+         · 常态：S2 已选路锁、未选路=副业；S3 主副已选、余路锁
+         · 身未立（mainEmpty）→ 全锁：副业不开放，唯主业可取消重择 */
       if (S === 'S1') locked = draftS1 ? false : (p !== '闲身');
-      else if (重择) locked = false;
       else if (mainEmpty(D.主)) locked = true;   /* 2026-10-13 作者定：身未立 → 副业不开放，唯主业可取消重择 */
       else if (S === 'S3') locked = !chosen;
       else locked = chosen;
@@ -223,12 +219,12 @@
       if (chip2) chip2.parentNode.removeChild(chip2);
       /* 主业上的「取消」（S2/S3 常态；2026-10-13 定稿，仿闲身） */
       var chipM = b.querySelector('.ye-entry-cancel-main');
-      if ((S === 'S2' || S === 'S3') && !重择 && p === 主id真 && !chipM) {
+      if ((S === 'S2' || S === 'S3') && p === 主id真 && !chipM) {
         chipM = document.createElement('span');
         chipM.className = 'ye-entry-cancel-main';
         chipM.textContent = W.取消;
         b.appendChild(chipM);
-      } else if (chipM && !((S === 'S2' || S === 'S3') && !重择 && p === 主id真)) {
+      } else if (chipM && !((S === 'S2' || S === 'S3') && p === 主id真)) {
         chipM.parentNode.removeChild(chipM);
       }
       /* 闲身上的「取消」（S1 且非草稿） */
@@ -527,7 +523,7 @@
     var done = function (ok, payload) {
       if (actSeq !== mySeq) return;   /* 迟到响应：用户已接管（工房/书签/其他落笔），丢弃 */
       if (payload) window.TJ_STATE = payload;
-      draftS1 = false; mainDraft = false; view = 'auto'; s4Hint = false;
+      draftS1 = false; view = 'auto'; s4Hint = false;
       closeForm();
       renderYe(window.TJ_STATE);
       var mp = document.querySelector('.page[data-tab="业"] .meipi');
@@ -551,6 +547,42 @@
         })
         .catch(function () { if (actSeq === mySeq) { previewCommit(); done(false); } });
     } else { previewCommit(); done(false); }
+  }
+
+  /* ---- v2.3（2026-10-13 作者定）：点「取消」= 清档回归 ----
+     主槽清成未定（身份/子型/名号/景况/八槽全空串），副业不动：
+     S2 → S0（六路重开）；S3 → S4（主缺副在，副业可升主）。
+     空串清槽依赖数据桥白名单允许空值（patch_card_rules.js 同步放开）。 */
+  var CANCEL_SLOTS = ['子型', '名号', '景况', '根基', '在办', '人手', '声望', '进项', '出项', '牵累'];
+  function cancelMain() {
+    if (!cur || !cur.D || !cur.D.主) return;
+    var mySeq = actSeq;
+    var muts = [{ path: '棠郡.业.主.身份', value: '未定' }];
+    CANCEL_SLOTS.forEach(function (k) { muts.push({ path: '棠郡.业.主.' + k, value: '' }); });
+    var done = function (ok, payload) {
+      if (actSeq !== mySeq) return;
+      if (payload) window.TJ_STATE = payload;
+      view = 'auto'; s4Hint = false; draftS1 = false;
+      renderYe(window.TJ_STATE);
+      var mp = document.querySelector('.page[data-tab="业"] .meipi');
+      if (mp) mp.textContent = ok ? '已取消。六路皆在，重新择一向。' : (LN.预览 + '取消未记入');
+    };
+    var preview = function () {
+      devActive = true;
+      if (!devState) devState = JSON.parse(JSON.stringify(window.TJ_STATE || { 棠郡: { 业: {} } }));
+      devState.棠郡 = devState.棠郡 || {};
+      devState.棠郡.业 = devState.棠郡.业 || {};
+      devState.棠郡.业.主 = { 身份: '未定', 阶梯: 0 };
+      done(false);
+    };
+    if (window.TJState && window.TJState.writeBridge) {
+      window.TJState.writeBridge(muts, null, 1500)
+        .then(function (r) {
+          if (r && r.notice) window.TJ_NOTICE = r.notice;
+          done(true, r && r.payload);
+        })
+        .catch(function () { if (actSeq === mySeq) preview(); });
+    } else preview();
   }
 
   /* ---- v2.1 修五：择业消息文案（古风短句；名字随消息落正文=全册共用） ---- */
@@ -726,20 +758,12 @@
         openForm('主', path);
         return;
       }
-      /* 主业「取消」chip → 进重择态（仿闲身 startDraft） */
+      /* 主业「取消」chip → 清档回归（v2.3 作者定） */
       if ((S === 'S2' || S === 'S3') && e.target.closest('.ye-entry-cancel-main')) {
-        mainDraft = true;
-        renderYe(lastState);
+        cancelMain();
         return;
       }
       if (b.classList.contains('is-chosen') || b.classList.contains('is-locked')) return;
-      if (mainDraft && (S === 'S2' || S === 'S3')) {
-        /* 重择态：点原路=复归；点其他路=落笔新主业 */
-        var 主id真2 = (cur.D && cur.D.主) ? cur.D.主.身份 : '';
-        if (path === 主id真2) { mainDraft = false; renderYe(lastState); return; }
-        openForm('主', path);
-        return;
-      }
       /* 常态：S2 点未选路 = 副业；S0 点任何路 = 首择主业 */
       openForm(S === 'S2' ? '副' : '主', path);
     });
