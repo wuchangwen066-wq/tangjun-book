@@ -34,7 +34,13 @@
 (function () {
   'use strict';
 
-  var IMG = { desk: 'assets/桌案/position-ref.webp' };
+  /* 桌案图：酒馆把正则输出渲染成 srcdoc iframe，那里 <base> 不生效 →
+     相对路径 'assets/桌案/position-ref.webp' 会解析不到 → 白桌案（2026-10-12 复现）。
+     改为从**脚本自身 URL** 推导站点根；发布树是拍平的，图就在脚本旁边。
+     本地预览服务同样按根路径提供该文件，一并兼容。 */
+  var _bs = (document.currentScript && document.currentScript.src) || '';
+  var _bd = _bs ? _bs.replace(/[^/]*$/, '') : '';
+  var IMG = { desk: _bd + 'position-ref.webp' };
   var RATIO = 2.7806;                /* 2091/752；条带高度随宽度自然得出 */
 
   /* ---------- 光影关键帧：集中在此，方便手调 ---------- */
@@ -342,7 +348,9 @@
     if (on === UI.wrap.classList.contains('is-open')) return;
     busy = true; want = on;
     /* 开 → 走**浮窗**（父文档里那个居中窗口）；浮窗不可用才回退「原位展开」 */
-    var ov = on ? openOverlay() : false;
+    /* v2.2：预览（?scenario=）不走浮窗——浮窗是开册时的文档快照，
+       预览注入的 mock 数据赶不上快照；原位展开，册子 DOM 即主文档。 */
+    var ov = (on && !Q.has('scenario')) ? openOverlay() : false;
     /* 册首凡例（方案 A）：首次开册亮覆盖笺。
        本侧（横幅/原位展开）同窗直调；浮窗 iframe 自带 tj-fanli.js，
        它读到 data-tj-overlay 会在加载后自己亮笺，此处不用管。 */
@@ -709,30 +717,14 @@
   }
 
   var UI = null;
-  function boot() {
-    /* 浮窗里的那一份：不要横幅，直接把整册铺满舞台 */
-    if (IS_OVERLAY) { bootOverlay(); return; }
-    /* 带 ?scenario= 的是**离线预览**（各探针与单独看册子都走这条）——
-       预览时不要横幅、也不要藏册子，保持原来的直开形态。
-       生产环境（酒馆正文）没有这个参数，才进横幅形态。 */
-    if (Q.has('scenario')) return;
-    UI = build();
-    if (!UI) return;
-    syncPlateWidth();
-    /* 布局/字体/窗口尺寸变化后重算（册子宽度受 vw/vh 与字体度量影响） */
-    window.addEventListener('resize', syncPlateWidth);
-    setTimeout(syncPlateWidth, 240);
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { syncPlateWidth(); });
-    apply(hour, true);
-
-    /* 桌面交互（2026-10-06 重构）：命中 = 轮廓 path 本身（透明填充吃指针）。
-       悬停/键盘聚焦 → 勾边描画（.is-lit；移出/失焦淡出）；点击 → 开册 / 开舆图。
-       触屏无悬停：click 直接生效。书组画在卷轴组之上 → 重叠处指针先中书。 */
+  /* ---- v2.2 提级：桌面交互（悬停描边 / 点击开册·开舆图）----
+     boot 主路与 scenario 预览分支共用。 */
+  function wireDesk(UI, setOpen) {
     function lit(g, on) {
       if (!g) return;
       if (on) {
         g.classList.remove('is-lit');
-        void g.getBoundingClientRect();      /* 强制重排：描画动画可重播 */
+        void g.getBoundingClientRect();
         g.classList.add('is-lit');
       } else {
         g.classList.remove('is-lit');
@@ -746,7 +738,6 @@
       hit.addEventListener('blur', function () { lit(g, false); });
       hit.addEventListener('click', function (e) {
         open();
-        /* 鼠标点完就摘焦点（描边随开册淡出）；键盘（detail=0 的合成 click）不摘 */
         if (e && e.detail) { try { hit.blur(); } catch (er) {} }
       });
       hit.addEventListener('keydown', function (e) {
@@ -755,6 +746,43 @@
     }
     wireObj(UI.scrollG, UI.scroll, function () { if (window.TJ_Map) window.TJ_Map.open(); });
     wireObj(UI.bookG, UI.book, function () { setOpen(!UI.wrap.classList.contains('is-open')); });
+  }
+
+  function boot() {
+    /* 浮窗里的那一份：不要横幅，直接把整册铺满舞台 */
+    if (IS_OVERLAY) { bootOverlay(); return; }
+    /* 带 ?scenario= 的是**离线预览**（各探针与单独看册子都走这条）——
+       预览时不开册、不藏册子，保持直开形态；但**照样建横幅 + 信息笺**，
+       让本地预览也能看到年月日/在/天/钱四行（2026-10-12 本地预览工作流）。 */
+    if (Q.has('scenario')) {
+      UI = build();
+      if (UI) {
+        apply(hour, true);
+        wireDesk(UI, setOpen);   /* v2.2：预览也能点书面开册 / 点卷轴开舆图 */
+        /* 预览也要让信息笺跑起来：显式把 scenario 传给 TJState（否则走
+           MVU/桥真实链 → 全落空 → slip 全「—」） */
+        try {
+          window.TJState.getState({ scenario: Q.get('scenario') }).then(function (s) {
+            lastState = s; setSlip(s);
+          }, function () {});
+        } catch (e) {}
+      }
+      return;
+    }
+    UI = build();
+    if (!UI) return;
+    syncPlateWidth();
+    /* 布局/字体/窗口尺寸变化后重算（册子宽度受 vw/vh 与字体度量影响） */
+    window.addEventListener('resize', syncPlateWidth);
+    setTimeout(syncPlateWidth, 240);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { syncPlateWidth(); });
+    apply(hour, true);
+
+    /* 桌面交互（2026-10-06 重构）：命中 = 轮廓 path 本身（透明填充吃指针）。
+       悬停/键盘聚焦 → 勾边描画（.is-lit；移出/失焦淡出）；点击 → 开册 / 开舆图。
+       触屏无悬停：click 直接生效。书组画在卷轴组之上 → 重叠处指针先中书。 */
+    /* 桌面交互：lit/wireObj 提为模块级 wireDesk（v2.2：scenario 预览分支复用） */
+    wireDesk(UI, setOpen);
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && UI.wrap.classList.contains('is-open')) setOpen(false);
     });
