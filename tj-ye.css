@@ -133,6 +133,14 @@
    = --rule-gap 字落线上）打架，造成贴线/错位/字体不一。现整块删除，
    #yeSlots 与 #yeMoney（现银）完全同走 tj-pages.css 的 .rows/.row 体系。 */
 
+/* v2.2（2026-10-12）：志向制框架——空槽显「未记」。
+   墨灰淡字（同 .mo-man 墨漫语言）：框架在、值未玩出来。 */
+.v-empty {
+  color: rgba(31, 27, 22, .38);
+  font-family: var(--font-kai);
+  letter-spacing: .12em;
+}
+
 /* ---------- 试看名帖（v0 假数据切换） ---------- */
 .ye-switch {
   margin-top: 14px;
@@ -508,3 +516,16 @@
   padding: 2px 8px 3px; cursor: pointer;
 }
 .ye-dev .ye-pip.is-on { background: #2b241b; color: #ecdfc6; border-color: #2b241b; }
+
+/* B7（2026-10-12）：兼理角标——任务区顶的「兼理中 · 副X」小印。
+   朱砂描边小签，与 .ye-taskcard.is-urgent 同色系，不做重色块；
+   title 悬浮出 lexicon 兼理.句（「吾能兼理诸务，绰有余裕！」）。 */
+.ye-jl-badge {
+  display: inline-block;
+  font-size: 11px; line-height: 1.6; letter-spacing: 2px;
+  color: #962c24;
+  border: 1px solid rgba(150, 44, 36, .4);
+  border-radius: 2px;
+  padding: 0 6px; margin: 0 0 5px;
+  background: rgba(150, 44, 36, .05);
+}
