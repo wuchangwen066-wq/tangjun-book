@@ -60,7 +60,7 @@
   var devActive = false, devState = null, devOpen = false;
   var devDay = 3, devJing = '平稳', devMainId = '商', devSubId = '仕';
   var cur = null;              /* {S, D} 渲染缓存，点击处理器用 */
-  /* 「重挑主业」态 2026-10-13 已废（作者重定交互：未落即初态，见 renderChoose） */
+  var mainDraft = false;        /* 主业「取消→重择」态（2026-10-13 作者定稿，仿闲身草稿制） */
   var actSeq = 0;              /* 全局点击序号：桥响应迟到时以序号判断是否过期（防迟到 preview 覆盖 dev 态） */
 
   /* ---- v2.2：主业「志向未落」判定 ----
@@ -162,17 +162,18 @@
   function renderChoose(D, S) {
     var 主 = D.主, 副 = D.副;
     var 主id = 主 ? 主.身份 : '', 副id = 副 ? 副.身份 : '';
-    /* 作者 2026-10-13 重定交互：志向未落（mainEmpty）→ 择业页呈初态——
-       不画任何已选标记（主/副都不画），引导语回首择文案，颜色回归原版。
-       取消不设专门态：另点一路即换主业；点原路即重落笔。 */
-    var 主未落 = mainEmpty(主);
-    if (主未落) { 主id = ''; 副id = ''; }
+    var 主id真 = 主id;   /* 不被重择态清空的真身：取消 chip 靠它定位 */
+    /* 作者 2026-10-13 定稿（全面替换「未落初态」旧机制，仿闲身取消制）：
+       主业条目带「取消」chip——点它进重择态：全页无已选标记（颜色回归原版），
+       点任何路=落笔新主业；不点取消 → 点其他路=选副业。重择中点原路=复归。 */
+    var 重择 = mainDraft && (S === 'S2' || S === 'S3');
+    if (重择) { 主id = ''; 副id = ''; }
     var lead = el('yeLead');
     if (S === 'S0') lead.textContent = LN.S0左;
     else if (S === 'S4') lead.textContent = LN.S4;
     else if (S === 'S1') lead.textContent = draftS1 ? W.草稿 : '闲身已在。要换路，先解。';
-    else if (S === 'S2') lead.textContent = 主未落 ? LN.S0左 : '主业已立。可再择一路为副业。';
-    else lead.textContent = 主未落 ? LN.S0左 : '一主一副，两槽皆满。';
+    else if (S === 'S2' || S === 'S3') lead.textContent = 重择 ? W.重择
+      : (S === 'S2' ? '主业已立。可再择一路为副业。' : '一主一副，两槽皆满。');
 
     /* v2.1 修五：署名条——只 S0 未署名时摊开；已记/暂不/非S0 收起 */
     var sign = el('yeSign');
@@ -204,11 +205,11 @@
       var p = b.dataset.ye;
       var chosen = (S !== 'S0' && p === 主id) || (副id && p === 副id && S !== 'S0');
       var locked;
-      /* 2026-10-13 作者重定：
-         · 志向未落 → 六路皆可点，点的就是新主业（初态无标记）
-         · 已写入（!主未落）：S2 已选路锁死，未选路=副业；S3 主副已选，余路锁 */
+      /* 2026-10-13 定稿（仿闲身）：
+         · 重择态（点了主业取消）→ 六路皆可点，点的就是新主业
+         · 常态：S2 已选路锁、未选路=副业；S3 主副已选、余路锁 */
       if (S === 'S1') locked = draftS1 ? false : (p !== '闲身');
-      else if (主未落) locked = false;
+      else if (重择) locked = false;
       else if (S === 'S3') locked = !chosen;
       else locked = chosen;
       b.classList.toggle('is-chosen', chosen && !(S === 'S1' && draftS1));
@@ -217,6 +218,16 @@
       /* 「重择」角标已废（2026-10-13 交互重定）——仅清理可能残留的 DOM */
       var chip2 = b.querySelector('.ye-entry-reselect');
       if (chip2) chip2.parentNode.removeChild(chip2);
+      /* 主业上的「取消」（S2/S3 常态；2026-10-13 定稿，仿闲身） */
+      var chipM = b.querySelector('.ye-entry-cancel-main');
+      if ((S === 'S2' || S === 'S3') && !重择 && p === 主id真 && !chipM) {
+        chipM = document.createElement('span');
+        chipM.className = 'ye-entry-cancel-main';
+        chipM.textContent = W.取消;
+        b.appendChild(chipM);
+      } else if (chipM && !((S === 'S2' || S === 'S3') && !重择 && p === 主id真)) {
+        chipM.parentNode.removeChild(chipM);
+      }
       /* 闲身上的「取消」（S1 且非草稿） */
       var chip = b.querySelector('.ye-entry-cancel');
       if (S === 'S1' && !draftS1 && p === '闲身' && !chip) {
@@ -510,7 +521,7 @@
     var done = function (ok, payload) {
       if (actSeq !== mySeq) return;   /* 迟到响应：用户已接管（工房/书签/其他落笔），丢弃 */
       if (payload) window.TJ_STATE = payload;
-      draftS1 = false; view = 'auto'; s4Hint = false;
+      draftS1 = false; mainDraft = false; view = 'auto'; s4Hint = false;
       closeForm();
       renderYe(window.TJ_STATE);
       var mp = document.querySelector('.page[data-tab="业"] .meipi');
@@ -709,11 +720,22 @@
         openForm('主', path);
         return;
       }
+      /* 主业「取消」chip → 进重择态（仿闲身 startDraft） */
+      if ((S === 'S2' || S === 'S3') && e.target.closest('.ye-entry-cancel-main')) {
+        mainDraft = true;
+        renderYe(lastState);
+        return;
+      }
       if (b.classList.contains('is-chosen') || b.classList.contains('is-locked')) return;
-      /* 2026-10-13：志向未落 → 点任何路都是新主业（主）；否则 S2/S3 点未选路 = 副业 */
-      var 主未落2 = cur.D && mainEmpty(cur.D.主);
-      var mode = ((S === 'S2' || S === 'S3') && !主未落2) ? '副' : '主';
-      openForm(mode, path);
+      if (mainDraft && (S === 'S2' || S === 'S3')) {
+        /* 重择态：点原路=复归；点其他路=落笔新主业 */
+        var 主id真2 = (cur.D && cur.D.主) ? cur.D.主.身份 : '';
+        if (path === 主id真2) { mainDraft = false; renderYe(lastState); return; }
+        openForm('主', path);
+        return;
+      }
+      /* 常态：S2 点未选路 = 副业；S0 点任何路 = 首择主业 */
+      openForm(S === 'S2' ? '副' : '主', path);
     });
 
     /* 兼理开关：实况走数据桥（同落笔惯例）；dev 态改 devState；无桥环境改本地态。 */
