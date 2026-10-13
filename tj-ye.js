@@ -60,7 +60,7 @@
   var devActive = false, devState = null, devOpen = false;
   var devDay = 3, devJing = '平稳', devMainId = '商', devSubId = '仕';
   var cur = null;              /* {S, D} 渲染缓存，点击处理器用 */
-  var reselectMain = false;    /* v2.2：重挑主业态——点已选主业进的；此态点别的路=换主业 */
+  /* 「重挑主业」态 2026-10-13 已废（作者重定交互：未落即初态，见 renderChoose） */
   var actSeq = 0;              /* 全局点击序号：桥响应迟到时以序号判断是否过期（防迟到 preview 覆盖 dev 态） */
 
   /* ---- v2.2：主业「志向未落」判定 ----
@@ -162,13 +162,17 @@
   function renderChoose(D, S) {
     var 主 = D.主, 副 = D.副;
     var 主id = 主 ? 主.身份 : '', 副id = 副 ? 副.身份 : '';
+    /* 作者 2026-10-13 重定交互：志向未落（mainEmpty）→ 择业页呈初态——
+       不画任何已选标记（主/副都不画），引导语回首择文案，颜色回归原版。
+       取消不设专门态：另点一路即换主业；点原路即重落笔。 */
+    var 主未落 = mainEmpty(主);
+    if (主未落) { 主id = ''; 副id = ''; }
     var lead = el('yeLead');
     if (S === 'S0') lead.textContent = LN.S0左;
     else if (S === 'S4') lead.textContent = LN.S4;
     else if (S === 'S1') lead.textContent = draftS1 ? W.草稿 : '闲身已在。要换路，先解。';
-    else if (S === 'S2') lead.textContent = reselectMain ? '重择主业：另点一路落笔；点原路取消。'
-      : (mainEmpty(主) ? LN.S2可换 : '主业已立。可再择一路为副业。');
-    else lead.textContent = '一主一副，两槽皆满。';
+    else if (S === 'S2') lead.textContent = 主未落 ? LN.S0左 : '主业已立。可再择一路为副业。';
+    else lead.textContent = 主未落 ? LN.S0左 : '一主一副，两槽皆满。';
 
     /* v2.1 修五：署名条——只 S0 未署名时摊开；已记/暂不/非S0 收起 */
     var sign = el('yeSign');
@@ -200,29 +204,19 @@
       var p = b.dataset.ye;
       var chosen = (S !== 'S0' && p === 主id) || (副id && p === 副id && S !== 'S0');
       var locked;
-      /* v2.2 交互：
-         · S2 常态：点未选路 = 选副业；点已选路 = 进「重挑主业」（仅志向未落时）
-         · 重挑态：所有路可点，点的就是新主业
-         · 已写入信息（!mainEmpty）：已选路锁死，不能重挑 */
-      var 可重挑 = (S === 'S2' && chosen && mainEmpty(D.主));
+      /* 2026-10-13 作者重定：
+         · 志向未落 → 六路皆可点，点的就是新主业（初态无标记）
+         · 已写入（!主未落）：S2 已选路锁死，未选路=副业；S3 主副已选，余路锁 */
       if (S === 'S1') locked = draftS1 ? false : (p !== '闲身');
+      else if (主未落) locked = false;
       else if (S === 'S3') locked = !chosen;
-      else if (S === 'S2' && reselectMain) locked = false;
-      else if (S === 'S2') locked = chosen && !可重挑;
       else locked = chosen;
       b.classList.toggle('is-chosen', chosen && !(S === 'S1' && draftS1));
       b.classList.toggle('is-locked', locked);
       b.setAttribute('aria-disabled', locked && !chosen ? 'true' : 'false');
-      /* v2.2：重挑态给已选项加角标 */
-      var chip2 = b.querySelector('.ye-entry-reselect');
-      if (S === 'S2' && reselectMain && chosen && !chip2) {
-        chip2 = document.createElement('span');
-        chip2.className = 'ye-entry-reselect';
-        chip2.textContent = '重择';
-        b.appendChild(chip2);
-      } else if (chip2 && !(S === 'S2' && reselectMain && chosen)) {
-        chip2.parentNode.removeChild(chip2);
-      }
+      /* 「重择」角标已废（2026-10-13 交互重定）——仅清理可能残留的 DOM */
+      var chip2 = b.querySelector('.ye-entry-reselect');
+      if (chip2) chip2.parentNode.removeChild(chip2);
       /* 闲身上的「取消」（S1 且非草稿） */
       var chip = b.querySelector('.ye-entry-cancel');
       if (S === 'S1' && !draftS1 && p === '闲身' && !chip) {
@@ -516,21 +510,20 @@
     var done = function (ok, payload) {
       if (actSeq !== mySeq) return;   /* 迟到响应：用户已接管（工房/书签/其他落笔），丢弃 */
       if (payload) window.TJ_STATE = payload;
-      draftS1 = false; view = 'auto'; s4Hint = false; reselectMain = false;
+      draftS1 = false; view = 'auto'; s4Hint = false;
       closeForm();
       renderYe(window.TJ_STATE);
       var mp = document.querySelector('.page[data-tab="业"] .meipi');
       if (mp) mp.textContent = ok ? LN.记下 : (LN.预览 + '路怎么走，看你。');
-      /* v2.1 修五 5.3：主业落笔成功 → 发择业消息（正文=绑定）；
-         发送失败（桥无酒馆助手 API）→ 提示玩家自行言明，不卡死。 */
+      /* 2026-10-13 作者改：主业落笔成功 → 择业消息只置入酒馆输入框，
+         不自动发送、不触发生成——由主人审阅后自行发出（触发生成贵，且原文该留改口）。
+         置入失败（无输入框/独立预览）→ 眉批兜底展示原文。 */
       if (ok && formMode === '主') {
         var text = buildYeMsg(path, 子型, 名号);
-        sendYeMsg(text).then(function (sent) {
-          if (!sent) {
-            var ld = el('yeLead');
-            if (ld && cur && cur.S === 'S2') ld.textContent = '志向已记下。再向人间言明此志，方算落定。';
-          }
-        });
+        var filled = fillYeMsg(text);
+        if (mp) mp.textContent = filled
+          ? '志向已记下。话已置入输入框——审阅后发出，方算落定。'
+          : '志向已记下。请向人间言明此志：' + text;
       }
     };
     if (window.TJState && window.TJState.writeBridge) {
@@ -555,15 +548,28 @@
     parts.push(seg);
     return parts.join('；').replace('；', '，') + '。';
   }
-  /* ---- v2.1 修五：发择业消息（桥侧 triggerSlash /send + /trigger）----
-     resolve(true)=已发出并触发生成；resolve(false)=发不了（让玩家自己说） */
-  function sendYeMsg(text) {
-    return new Promise(function (resolve) {
-      if (!window.TJState || !window.TJState.sendBridge) { resolve(false); return; }
-      window.TJState.sendBridge(text, null, 4000)
-        .then(function (r) { resolve(!!(r && r.ok)); })
-        .catch(function () { resolve(false); });
-    });
+  /* ---- 2026-10-13 作者改：择业消息置入酒馆输入框（不发送）----
+     HUD 在消息的 srcdoc iframe 里，与父页同源 → 可写 #send_textarea。
+     追加写入（不动用户已打的内容）+ 触发 input 事件让 ST 记账，光标落末。 */
+  function fillYeMsg(text) {
+    try {
+      var p = window.parent;
+      if (!p || p === window) return false;               /* 独立预览：无输入框可填 */
+      var doc = p.document;
+      if (!doc) return false;
+      var ta = doc.getElementById('send_textarea');
+      if (!ta && doc.querySelector) {
+        ta = doc.querySelector('#send_form textarea, textarea#send_textarea, #send_textarea');
+      }
+      if (!ta || typeof ta.value !== 'string') return false;
+      var cur = String(ta.value || '').replace(/\s+$/, '');
+      ta.value = cur ? cur + ' ' + text : text;
+      var EK = p.Event || window.Event;
+      try { ta.dispatchEvent(new EK('input', { bubbles: true })); } catch (e) {}
+      try { ta.dispatchEvent(new EK('change', { bubbles: true })); } catch (e) {}
+      try { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {}
+      return true;
+    } catch (e) { return false; }
   }
   /* 预览（无桥）：落进工房 mock，状态机照走
      v2.1 修五 5.3：志向制——回退预览只落 身份/子型/名号/景况（不拿词库九槽
@@ -703,16 +709,10 @@
         openForm('主', path);
         return;
       }
-      var chosen2 = b.classList.contains('is-chosen');
-      /* v2.2：点已选路（S2 且志向未落）= 进/退「重挑主业」态 */
-      if (chosen2 && S === 'S2' && cur.D && mainEmpty(cur.D.主)) {
-        reselectMain = !reselectMain;
-        renderYe(lastState);
-        return;
-      }
-      if (chosen2 || b.classList.contains('is-locked')) return;
-      /* v2.2：重挑态点任何路 = 换主业；否则 S2 点未选路 = 选副业（原设计） */
-      var mode = ((S === 'S2' && !reselectMain) || S === 'S3') ? '副' : '主';
+      if (b.classList.contains('is-chosen') || b.classList.contains('is-locked')) return;
+      /* 2026-10-13：志向未落 → 点任何路都是新主业（主）；否则 S2/S3 点未选路 = 副业 */
+      var 主未落2 = cur.D && mainEmpty(cur.D.主);
+      var mode = ((S === 'S2' || S === 'S3') && !主未落2) ? '副' : '主';
       openForm(mode, path);
     });
 
