@@ -275,7 +275,7 @@
    仅以 cursor 示不可点；变暗留给真正未选的锁定卡。 */
 .ye-entry.is-chosen.is-locked { opacity: 1; cursor: default; }
 .ye-entry.is-chosen.is-locked .ye-entry-name { color: #ecdfc6; }
-.ye-entry-cancel {
+.ye-entry-cancel, .ye-entry-cancel-main {
   position: absolute; top: 6px; right: 8px;
   font-size: 11px; letter-spacing: 2px;
   color: #ecdfc6; background: rgba(150, 44, 36, .85);
