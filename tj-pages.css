@@ -788,9 +788,12 @@
 .almanac {
   width: 100%;
   max-width: 340px;
-  margin-top: 4px;
+  margin-top: 16px;
 }
-.almanac .block-head { margin-bottom: 2px; }
+/* 2026-10-15 作者：副题「今明后三日」与「黄历」基线对齐（原 align-items:center
+   让小字悬在大字半腰，位置奇怪）；朱点无基线，单独保持居中 */
+.almanac .block-head { align-items: baseline; margin-bottom: 2px; }
+.almanac .block-head::before { align-self: center; }
 .almanac-row .k { min-width: 3em; color: var(--ink-2); font-size: 14px; }
 .almanac-row .v { font-size: 14px; }
 .almanac-row.is-大吉 .v,
