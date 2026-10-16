@@ -25,7 +25,21 @@
      ④ 时间与信息笺**读的是 TJState.getState() 那一份**，不另存；
      ⑤ 非最新楼层调 TJ_Banner.setStatic(true) → 停插值/停过渡，只留静态案面。
 
+   作者 2026-10-17（C 组「灯下看书」v3.0）：悬停高亮整体重做 ——
+     · 抠图提亮：assets/桌案/book-lit.webp 与 scroll-lit.webp 是**同源预渲染提亮图**
+       （alpha 取自旧分层素材、颜色烘自现行参考图 + brightness 1.12），悬停淡入
+       → 「灯光正好打在书上」。**不用 CSS filter 动态提亮**——filter 会提合成层，
+       软件合成路径下会把 SVG 勾边整块盖住（2026-10-17 无头实测踩坑）；
+     · 包裹线条加粗（作者 2026-10-17：「线条不太美观，应该更厚一些」）：
+       halo 7px 暖金 + 朱砂 2.6px + 泥金 1.4px，描画动画保留；
+     · 灯心 + 外光：书皮/纸面上柔光斑 + 物件背后一圈大柔光（SVG 椭圆 + 模糊），
+       颜色随时辰（--tj-core/--tj-glow）；
+     · 时辰调色重调（日中不再白盒 / 傍晚琥珀更浓 / 深夜留烛暖），
+       新增环境边缘光层 .tj-amb（ambOp 驱动）；
+     · 底线不变（作者 2026-10-06）：物件不位移、不放大、不上浮，只做光影。
+
    素材：assets/桌案/position-ref.webp（作者「参考摆放位置图」，等比 2091/752）
+   抠图：assets/桌案/book-lit.webp · scroll-lit.webp（v3.0 预渲染提亮层）
    轮廓：core/tj-desk-paths.js → window.TJ_DESK_PATHS（勿手改，工具生成）
    光源：窗棂光带自左上铺向右下（已画进参考图，前端只保留时辰调色）。
 
@@ -40,35 +54,46 @@
      本地预览服务同样按根路径提供该文件，一并兼容。 */
   var _bs = (document.currentScript && document.currentScript.src) || '';
   var _bd = _bs ? _bs.replace(/[^/]*$/, '') : '';
-  var IMG = { desk: _bd + 'position-ref.webp' };
+  var IMG = { desk: _bd + 'position-ref.webp',
+              bookLit: _bd + 'book-lit.webp',
+              scrollLit: _bd + 'scroll-lit.webp' };
   var RATIO = 2.7806;                /* 2091/752；条带高度随宽度自然得出 */
 
-  /* ---------- 光影关键帧：集中在此，方便手调 ---------- */
+  /* ---------- 光影关键帧：集中在此，方便手调 ----------
+     v3.0（2026-10-17）字段：
+       bright/sat/hue  → .tj-scene filter 三件套
+       grade(+Op/Blend)→ .tj-grade 混合叠色层
+       lit(+Op/Shift/Tilt) → .tj-lit 窗棂光带
+       ambOp           → .tj-amb 环境边缘光（暗角反塑，让案面像有景深的照片）
+       core            → 灯心色（悬停光斑）
+       glow            → 悬停外光色（drop-shadow）
+     曾经预留的 shadowOp/shadowBlur/shadowSpread/bookBright/bookTone
+     从未接线（sample() 不输出、CSS 不引用），v3.0 清除，免误导。 */
   var KEYS = [
-    { h: 5.5, name: '清晨', bright: 1.04, sat: .94, hue: -6,
-      grade: 'rgba(150,190,220,.30)', gradeOp: .55, gradeBlend: 'soft-light',
-      lit: 'rgba(198,226,255,.40)', litOp: .34, litShift: -2.2, litTilt: -2,
-      shadowOp: .46, shadowBlur: 9, shadowSpread: 1.15, ambOp: .30, bookBright: .99, bookTone: .26 },
-    { h: 10, name: '日中', bright: 1.0, sat: 1.0, hue: 0,
-      grade: 'rgba(255,236,200,.10)', gradeOp: .18, gradeBlend: 'soft-light',
-      lit: 'rgba(255,240,214,.34)', litOp: .16, litShift: 0, litTilt: 0,
-      shadowOp: .50, shadowBlur: 5, shadowSpread: .95, ambOp: .38, bookBright: 1, bookTone: .14 },
-    { h: 15, name: '午后', bright: .99, sat: 1.02, hue: 2,
-      grade: 'rgba(255,226,176,.16)', gradeOp: .30, gradeBlend: 'soft-light',
-      lit: 'rgba(255,232,190,.36)', litOp: .26, litShift: 1.2, litTilt: 1,
-      shadowOp: .48, shadowBlur: 7, shadowSpread: 1.1, ambOp: .36, bookBright: .99, bookTone: .18 },
-    { h: 18.5, name: '傍晚', bright: .93, sat: 1.06, hue: 4,
-      grade: 'rgba(255,150,70,.34)', gradeOp: .62, gradeBlend: 'soft-light',
-      lit: 'rgba(255,148,70,.52)', litOp: .50, litShift: 2.4, litTilt: 2,
-      shadowOp: .56, shadowBlur: 6, shadowSpread: 1.3, ambOp: .40, bookBright: .97, bookTone: .30 },
-    { h: 21, name: '入夜', bright: .60, sat: .88, hue: -8,
-      grade: 'rgba(90,120,190,.34)', gradeOp: .72, gradeBlend: 'multiply',
-      lit: 'rgba(150,180,255,.26)', litOp: .12, litShift: 1.5, litTilt: 1,
-      shadowOp: .34, shadowBlur: 12, shadowSpread: 1.2, ambOp: .26, bookBright: .96, bookTone: .34 },
-    { h: 1, name: '深夜', bright: .52, sat: .82, hue: -10,
-      grade: 'rgba(70,100,175,.40)', gradeOp: .8, gradeBlend: 'multiply',
+    { h: 5.5, name: '清晨', bright: 1.05, sat: .96, hue: -8,
+      grade: 'rgba(148,188,222,.32)', gradeOp: .50, gradeBlend: 'soft-light',
+      lit: 'rgba(198,226,255,.42)', litOp: .30, litShift: -2.2, litTilt: -2,
+      ambOp: .26, core: 'rgba(222,238,252,.40)', glow: 'rgba(190,216,248,.34)' },
+    { h: 10, name: '日中', bright: 1.02, sat: 1.02, hue: 0,
+      grade: 'rgba(255,240,214,.13)', gradeOp: .22, gradeBlend: 'soft-light',
+      lit: 'rgba(255,242,220,.36)', litOp: .20, litShift: 0, litTilt: 0,
+      ambOp: .30, core: 'rgba(255,250,234,.44)', glow: 'rgba(255,240,206,.36)' },
+    { h: 15, name: '午后', bright: 1.0, sat: 1.03, hue: 2,
+      grade: 'rgba(255,227,178,.17)', gradeOp: .32, gradeBlend: 'soft-light',
+      lit: 'rgba(255,232,190,.38)', litOp: .28, litShift: 1.2, litTilt: 1,
+      ambOp: .32, core: 'rgba(255,244,220,.46)', glow: 'rgba(255,228,180,.38)' },
+    { h: 18.5, name: '傍晚', bright: .94, sat: 1.08, hue: 5,
+      grade: 'rgba(255,148,66,.38)', gradeOp: .62, gradeBlend: 'soft-light',
+      lit: 'rgba(255,152,72,.56)', litOp: .48, litShift: 2.4, litTilt: 2,
+      ambOp: .40, core: 'rgba(255,214,152,.52)', glow: 'rgba(255,186,110,.42)' },
+    { h: 21, name: '入夜', bright: .62, sat: .90, hue: -10,
+      grade: 'rgba(88,118,192,.34)', gradeOp: .70, gradeBlend: 'multiply',
+      lit: 'rgba(150,180,255,.28)', litOp: .12, litShift: 1.5, litTilt: 1,
+      ambOp: .24, core: 'rgba(206,222,248,.40)', glow: 'rgba(150,180,235,.34)' },
+    { h: 1, name: '深夜', bright: .55, sat: .84, hue: -12,
+      grade: 'rgba(70,100,175,.40)', gradeOp: .78, gradeBlend: 'multiply',
       lit: 'rgba(140,175,255,.20)', litOp: .07, litShift: 1, litTilt: 0,
-      shadowOp: .28, shadowBlur: 14, shadowSpread: 1.1, ambOp: .22, bookBright: .93, bookTone: .40 },
+      ambOp: .20, core: 'rgba(255,208,158,.48)', glow: 'rgba(255,192,128,.40)' },
   ];
 
   var CSS = [
@@ -90,24 +115,50 @@
     '.tj-scene{position:absolute;inset:0;transition:filter 1.5s var(--ease,cubic-bezier(.22,.8,.2,1));',
     'filter:brightness(var(--tj-bright)) saturate(var(--tj-sat)) hue-rotate(var(--tj-hue))}',
     '.tj-scene>img.tj-desk{position:absolute;inset:0;width:100%;height:100%;display:block}',
+    /* v3.0 同源抠图**预渲染提亮层**（book-lit/scroll-lit，颜色已烘进图、零 CSS filter）：
+       悬停时该层淡入 —— 曾用 CSS filter brightness+drop-shadow 动态提亮，
+       但 filter 会提合成层，无头/软件合成路径下把 SVG 勾边整块盖住（2026-10-17 实测），
+       故改为预渲染。书层在卷轴层之上（书压卷轴，与勾边组同一层级秩序）。 */
+    '.tj-cut{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;',
+    'pointer-events:none;transition:opacity 380ms var(--ease,cubic-bezier(.22,.8,.2,1))}',
+    '.tj-cut.is-lit{opacity:1}',
     /* 轮廓 SVG：viewBox=参考图像素坐标，随盘面等比缩放 → 抠图对齐永不漂移。
        preserveAspectRatio:none —— 盘面比例与 viewBox 严格相等（同源常量），
-       SVG 与底图做**同一种**拉伸，任何尺寸/窗口下都逐像素对齐。 */
+       SVG 与底图做**同一种**拉伸，任何尺寸/窗口下都逐像素对齐。
+       （v3.0 曾加 z-index:2 压提亮层 —— 无头实测反而整个 SVG 不绘制，
+       且提亮层已改为**无 filter 的预渲染图**（book-lit/scroll-lit），
+       不再提合成层，DOM 顺序即权威：desk img → 提亮层 → SVG，回到默认层序。） */
     '.tj-desk-svg{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible}',
-    /* 勾边：细朱砂＋更细泥金＋一圈低透明晕染；pathLength=1 归一化，
+    /* 勾边：暖金光晕＋粗朱砂＋细泥金；pathLength=1 归一化，
        vector-effect 让线宽是**屏幕像素**（细线不随盘面缩放变糊/变粗）。
-       悬停/聚焦只改这组描边 —— 物件本体（图画）不位移、不放大、不上浮。 */
+       悬停/聚焦只改这组描边与提亮层 —— 物件本体（图画）不位移、不放大、不上浮。
+       v3.0（2026-10-17）：三线整体加粗（作者：「包裹的线条不太美观，应该更厚一些」），
+       halo 由砖红改暖金（选中态用金，符合设计系统），并加呼吸。 */
     '.tj-dstrokes path{fill:none;stroke-linecap:round;stroke-linejoin:round;',
     'stroke-dasharray:1;stroke-dashoffset:0;opacity:0;vector-effect:non-scaling-stroke;',
-    'transition:opacity 240ms var(--ease,cubic-bezier(.22,.8,.2,1))}',
-    '.tj-d-halo{stroke:rgba(143,42,35,.30);stroke-width:4.5px}',
-    '.tj-d-zhu{stroke:#a8322a;stroke-width:1.8px}',
-    '.tj-d-gold{stroke:#b8955a;stroke-width:1px}',
-    /* 描画动画：从起点沿轮廓走一圈（dashoffset 1→0），朱砂先动、泥金错位跟进 */
-    '.tj-dobj.is-lit .tj-d-halo,.tj-dobj:focus-within .tj-d-halo{animation:tj-draw 560ms var(--ease,cubic-bezier(.22,.8,.2,1)) forwards}',
+    'transition:opacity 320ms var(--ease,cubic-bezier(.22,.8,.2,1))}',
+    '.tj-d-halo{stroke:rgba(201,162,74,.34);stroke-width:7px}',
+    '.tj-d-zhu{stroke:#a8322a;stroke-width:2.6px}',
+    '.tj-d-gold{stroke:#b8955a;stroke-width:1.4px}',
+    /* 描画动画：从起点沿轮廓走一圈（dashoffset 1→0），朱砂先动、泥金错位跟进；
+       halo 走完后接呼吸（opacity .72↔1，3.6s）——「灯下」的常亮不刺眼。
+       注意：opacity 的显形**必须写在 keyframes 里**（与 is-lit 规则双保险）——
+       实测 Blink 下 animation fill-forwards 期间仅靠 is-lit 规则的 opacity 层叠值
+      会被压成 0（2026-10-17 无头自检踩坑），keyframes 内声明则两条路都稳。 */
+    '.tj-dobj.is-lit .tj-dstrokes path,.tj-dobj:focus-within .tj-dstrokes path{opacity:1}',
+    '.tj-dobj.is-lit .tj-d-halo,.tj-dobj:focus-within .tj-d-halo{animation:tj-draw 560ms var(--ease,cubic-bezier(.22,.8,.2,1)) forwards,tj-breathe 3.6s ease-in-out 620ms infinite}',
     '.tj-dobj.is-lit .tj-d-zhu,.tj-dobj:focus-within .tj-d-zhu{animation:tj-draw 560ms var(--ease,cubic-bezier(.22,.8,.2,1)) 60ms forwards}',
     '.tj-dobj.is-lit .tj-d-gold,.tj-dobj:focus-within .tj-d-gold{animation:tj-draw 560ms var(--ease,cubic-bezier(.22,.8,.2,1)) 140ms forwards}',
     '@keyframes tj-draw{0%{stroke-dashoffset:1;opacity:1}100%{stroke-dashoffset:0;opacity:1}}',
+    '@keyframes tj-breathe{0%,100%{opacity:.72}50%{opacity:1}}',
+    /* v3.0 灯心：书皮/纸面上的柔光斑（SVG 椭圆 + 大模糊），色随时辰（--tj-core） */
+    '.tj-d-core{fill:var(--tj-core);opacity:0;',
+    'transition:opacity 520ms var(--ease,cubic-bezier(.22,.8,.2,1))}',
+    '.tj-dobj.is-lit .tj-d-core,.tj-dobj:focus-within .tj-d-core{opacity:.9;transition-delay:200ms}',
+    /* v3.0 外光：物件背后一圈柔光晕（色随时辰 --tj-glow，比灯心淡） */
+    '.tj-d-ring{fill:var(--tj-glow);opacity:0;',
+    'transition:opacity 620ms var(--ease,cubic-bezier(.22,.8,.2,1))}',
+    '.tj-dobj.is-lit .tj-d-ring,.tj-dobj:focus-within .tj-d-ring{opacity:.42;transition-delay:120ms}',
     /* 命中 path：与抠图轮廓同形（evenodd 连洞），透明但吃指针；焦点环不画（作者定） */
     '.tj-d-hit{fill:#000;fill-opacity:0;stroke:none;pointer-events:all;cursor:pointer;',
     'outline:none;-webkit-tap-highlight-color:transparent}',
@@ -120,6 +171,11 @@
     '.tj-lit{position:absolute;inset:-20% -10%;pointer-events:none;mix-blend-mode:screen;opacity:var(--tj-lit-op);',
     'background:linear-gradient(104deg,transparent 8%,var(--tj-lit) 26%,transparent 46%,var(--tj-lit) 62%,transparent 80%);',
     'transition:opacity 1.5s var(--ease),background 1.5s var(--ease),transform 1.5s var(--ease)}',
+    /* v3.0 环境边缘光：暗角反塑 —— 中心透明、边缘泛时辰色，案面更有景深 */
+    '.tj-amb{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;opacity:var(--tj-amb-op);',
+    'background:radial-gradient(118% 86% at 50% 44%,transparent 56%,var(--tj-lit) 128%);',
+    'transition:opacity 1.5s var(--ease),background 1.5s var(--ease)}',
+    '.tj-banner.is-open .tj-amb{opacity:calc(var(--tj-amb-op) * .55)}',
     /* 信息笺：写在图内 */
     '.tj-slip{position:absolute;left:2.4%;top:8%;display:flex;flex-direction:column;gap:2px;',
     'padding:6px 9px 7px;min-width:88px;border-radius:3px;color:#2a241c;cursor:default;',
@@ -144,6 +200,7 @@
     'transition:transform 520ms var(--ease),opacity 420ms var(--ease),max-height 560ms var(--ease)}',
     '[data-tj-panel].is-tj-open{transform:scale(1);opacity:1;pointer-events:auto;max-height:2600px;overflow:visible}',
     '.tj-banner.is-open .tj-dobj-book{opacity:0;pointer-events:none}',
+    '.tj-banner.is-open .tj-cut-book{opacity:0!important;filter:none!important}',
     '.tj-banner.is-open .tj-scene{',
     'filter:brightness(calc(var(--tj-bright) * .75)) saturate(var(--tj-sat)) hue-rotate(var(--tj-hue)) blur(1.2px)}',
     '.tj-banner.is-open .tj-slip{opacity:0}',
@@ -156,10 +213,13 @@
     'html[data-tj-debugtime] .tj-dbg{display:flex}',
     '.tj-dbg input{width:190px}',
     '@media (prefers-reduced-motion:reduce){',
-    '.tj-scene,.tj-dstrokes path,[data-tj-panel]{transition-duration:1ms!important;animation:none!important}',
+    '.tj-scene,.tj-dstrokes path,.tj-cut,.tj-d-core,.tj-d-ring,[data-tj-panel]{transition-duration:1ms!important;animation:none!important}',
     /* 降级：勾边不做描画动画，聚焦/悬停直接显形 */
     '.tj-dobj.is-lit .tj-d-zhu,.tj-dobj:focus-within .tj-d-zhu,',
     '.tj-dobj.is-lit .tj-d-gold,.tj-dobj:focus-within .tj-d-gold{opacity:1;stroke-dashoffset:0}',
+    '.tj-dobj.is-lit .tj-d-halo,.tj-dobj:focus-within .tj-d-halo{opacity:1;stroke-dashoffset:0}',
+    '.tj-dobj.is-lit .tj-d-core,.tj-dobj:focus-within .tj-d-core{opacity:.9}',
+    '.tj-dobj.is-lit .tj-d-ring,.tj-dobj:focus-within .tj-d-ring{opacity:.42}',
     '[data-tj-panel]{transform:translate(-50%,-50%) scale(1)}}',
   ].join('');
 
@@ -182,10 +242,12 @@
       if (d <= span) { lo = a; hi = b; t = d / span; break; }
     }
     var out = {};
-    ['bright','sat','hue','gradeOp','litOp','litShift','litTilt']
+    ['bright','sat','hue','gradeOp','litOp','litShift','litTilt','ambOp']
       .forEach(function (k) { out[k] = lerp(lo[k], hi[k], t); });
     out.grade = mixColor(lo.grade, hi.grade, t);
     out.lit = mixColor(lo.lit, hi.lit, t);
+    out.core = mixColor(lo.core, hi.core, t);      /* 灯心色 */
+    out.glow = mixColor(lo.glow, hi.glow, t);      /* 悬停外光色 */
     out.gradeBlend = t < .5 ? lo.gradeBlend : hi.gradeBlend;
     out.name = t < .5 ? lo.name : hi.name;
     return out;
@@ -220,7 +282,13 @@
       'preserveAspectRatio="none" aria-hidden="true" focusable="false">' +
       '<defs><mask id="tj-dmask" maskUnits="userSpaceOnUse" x="0" y="0" width="' + W + '" height="' + H + '">' +
       '<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="#fff"/>' +
-      '<path d="' + DP.book.line + '" fill="#000"/></mask></defs>' +
+      '<path d="' + DP.book.line + '" fill="#000"/></mask>' +
+      /* v3.0 灯心柔光：大模糊椭圆（像素坐标下 stdDeviation 40，显示缩放后 ≈17px 柔边） */
+      '<filter id="tj-dsoft" x="-40%" y="-40%" width="180%" height="180%">' +
+      '<feGaussianBlur stdDeviation="40"/></filter>' +
+      /* v3.0 外光：更大的柔光晕（物件背后透出的「拿起」感） */
+      '<filter id="tj-dwide" x="-60%" y="-60%" width="220%" height="220%">' +
+      '<feGaussianBlur stdDeviation="64"/></filter></defs>' +
       '<g class="tj-dobj tj-dobj-scroll">' +
         strokes(DP.scroll.line, true) +
         /* 2026-10-10 修：卷轴的**命中区**也要套同一张书形掩模。
@@ -230,11 +298,21 @@
         '<path class="tj-d-hit" d="' + DP.scroll.hit + '" fill-rule="evenodd" ' +
           'mask="url(#tj-dmask)" tabindex="0" ' +
           'role="button" aria-label="展开棠郡舆图"/>' +
+        /* v3.0 灯心：卷轴中段纸面上一片暖光（同样裁掉书下部分） */
+        '<ellipse class="tj-d-core" cx="1062" cy="352" rx="196" ry="66" ' +
+          'filter="url(#tj-dsoft)" mask="url(#tj-dmask)"/>' +
+        /* v3.0 外光：物件背后一圈大柔光 */
+        '<ellipse class="tj-d-ring" cx="1062" cy="352" rx="250" ry="104" ' +
+          'filter="url(#tj-dwide)" mask="url(#tj-dmask)"/>' +
       '</g>' +
       '<g class="tj-dobj tj-dobj-book">' +
         strokes(DP.book.line, false) +
         '<path class="tj-d-hit" d="' + DP.book.hit + '" fill-rule="evenodd" tabindex="0" ' +
           'role="button" aria-label="翻开棠郡一册" aria-expanded="false"/>' +
+        /* v3.0 灯心：书皮偏左上（光源方向）一片柔光 */
+        '<ellipse class="tj-d-core" cx="1272" cy="298" rx="172" ry="132" filter="url(#tj-dsoft)"/>' +
+        /* v3.0 外光：书形外一圈柔光（不裁，允许溢出到桌面） */
+        '<ellipse class="tj-d-ring" cx="1284" cy="306" rx="228" ry="176" filter="url(#tj-dwide)"/>' +
       '</g>' +
     '</svg>';
   }
@@ -256,9 +334,12 @@
       '<div class="tj-plate">' +
         '<div class="tj-scene">' +
           '<img class="tj-desk" src="' + IMG.desk + '" alt="">' +
+          /* v3.0 预渲染提亮层：卷轴在下、书在上（书压卷轴）；零 filter，不提合成层 */
+          '<img class="tj-cut tj-cut-scroll" src="' + IMG.scrollLit + '" alt="">' +
+          '<img class="tj-cut tj-cut-book" src="' + IMG.bookLit + '" alt="">' +
           deskSVG() +
         '</div>' +
-        '<div class="tj-grade"></div><div class="tj-lit"></div>' +
+        '<div class="tj-grade"></div><div class="tj-lit"></div><div class="tj-amb"></div>' +
         '<div class="tj-slip" id="tj-slip">' +
           '<span class="tj-t tj-v" data-k="time">—</span>' +
           '<span class="tj-row"><span class="tj-k">在</span><span class="tj-v" data-k="place">—</span></span>' +
@@ -284,6 +365,8 @@
              scroll: wrap.querySelector('.tj-dobj-scroll .tj-d-hit'),
              bookG: wrap.querySelector('.tj-dobj-book'),
              scrollG: wrap.querySelector('.tj-dobj-scroll'),
+             bookCut: wrap.querySelector('.tj-cut-book'),
+             scrollCut: wrap.querySelector('.tj-cut-scroll'),
              plate: wrap.querySelector('.tj-plate'),
              lit: wrap.querySelector('.tj-lit'), dbg: dbg };
   }
@@ -300,6 +383,9 @@
     r.style.setProperty('--tj-grade-blend', p.gradeBlend);
     r.style.setProperty('--tj-lit', p.lit);
     r.style.setProperty('--tj-lit-op', p.litOp.toFixed(3));
+    r.style.setProperty('--tj-amb-op', (p.ambOp || 0).toFixed(3));
+    r.style.setProperty('--tj-core', p.core);
+    r.style.setProperty('--tj-glow', p.glow);
     if (UI && UI.lit) {
       UI.lit.style.transform = 'translateY(' + (p.litShift * 6).toFixed(1) + 'px) rotate(' +
         (p.litTilt * .25).toFixed(2) + 'deg)';
@@ -718,24 +804,28 @@
 
   var UI = null;
   /* ---- v2.2 提级：桌面交互（悬停描边 / 点击开册·开舆图）----
-     boot 主路与 scenario 预览分支共用。 */
+     boot 主路与 scenario 预览分支共用。
+     v3.0：lit() 同时驱动 SVG 勾边组与同源抠图提亮层（.tj-cut-*）。 */
   function wireDesk(UI, setOpen) {
-    function lit(g, on) {
-      if (!g) return;
-      if (on) {
-        g.classList.remove('is-lit');
-        void g.getBoundingClientRect();
-        g.classList.add('is-lit');
-      } else {
-        g.classList.remove('is-lit');
+    function lit(g, cut, on) {
+      if (g) {
+        if (on) {
+          /* remove→回流→add：重复悬停时描画动画重新起跑 */
+          g.classList.remove('is-lit');
+          void g.getBoundingClientRect();
+          g.classList.add('is-lit');
+        } else {
+          g.classList.remove('is-lit');
+        }
       }
+      if (cut) cut.classList.toggle('is-lit', !!on);
     }
-    function wireObj(g, hit, open) {
+    function wireObj(g, cut, hit, open) {
       if (!g || !hit) return;
-      hit.addEventListener('mouseenter', function () { lit(g, true); });
-      hit.addEventListener('mouseleave', function () { lit(g, false); });
-      hit.addEventListener('focus', function () { lit(g, true); });
-      hit.addEventListener('blur', function () { lit(g, false); });
+      hit.addEventListener('mouseenter', function () { lit(g, cut, true); });
+      hit.addEventListener('mouseleave', function () { lit(g, cut, false); });
+      hit.addEventListener('focus', function () { lit(g, cut, true); });
+      hit.addEventListener('blur', function () { lit(g, cut, false); });
       hit.addEventListener('click', function (e) {
         open();
         if (e && e.detail) { try { hit.blur(); } catch (er) {} }
@@ -744,8 +834,8 @@
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
       });
     }
-    wireObj(UI.scrollG, UI.scroll, function () { if (window.TJ_Map) window.TJ_Map.open(); });
-    wireObj(UI.bookG, UI.book, function () { setOpen(!UI.wrap.classList.contains('is-open')); });
+    wireObj(UI.scrollG, UI.scrollCut, UI.scroll, function () { if (window.TJ_Map) window.TJ_Map.open(); });
+    wireObj(UI.bookG, UI.bookCut, UI.book, function () { setOpen(!UI.wrap.classList.contains('is-open')); });
   }
 
   function boot() {
@@ -778,9 +868,10 @@
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { syncPlateWidth(); });
     apply(hour, true);
 
-    /* 桌面交互（2026-10-06 重构）：命中 = 轮廓 path 本身（透明填充吃指针）。
-       悬停/键盘聚焦 → 勾边描画（.is-lit；移出/失焦淡出）；点击 → 开册 / 开舆图。
-       触屏无悬停：click 直接生效。书组画在卷轴组之上 → 重叠处指针先中书。 */
+    /* 桌面交互（2026-10-06 重构，2026-10-17 v3.0 增强）：命中 = 轮廓 path 本身（透明填充吃指针）。
+       悬停/键盘聚焦 → 「灯下看书」：粗勾边描画 + 同源抠图提亮 + 灯心柔光；
+       点击 → 开册 / 开舆图。触屏无悬停：click 直接生效。
+       书组画在卷轴组之上 → 重叠处指针先中书。 */
     /* 桌面交互：lit/wireObj 提为模块级 wireDesk（v2.2：scenario 预览分支复用） */
     wireDesk(UI, setOpen);
     document.addEventListener('keydown', function (e) {
