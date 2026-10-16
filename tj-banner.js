@@ -38,6 +38,20 @@
        新增环境边缘光层 .tj-amb（ambOp 驱动）；
      · 底线不变（作者 2026-10-06）：物件不位移、不放大、不上浮，只做光影。
 
+   作者 2026-10-17（C 组「四层轮廓」v4.0）：悬停勾边补足深度层 ——
+     病根：v3.0 的 halo/朱砂/泥金是三条同心同形均匀描边，正是当初咨询里
+     「轮廓过于完整且均匀…容易产生贴纸感」批判的形态。解法=四层轮廓
+     （外部环境光 / 主轮廓 / 内侧高光 / 接触阴影），后两层 v3.0 缺：
+     · 内侧高光 .tj-d-in：轮廓偏左上（窗棂光方向）一条细暖白金
+       （#f4d99c 系）——「旧纸/皮革边缘的反光，不是发光」；
+     · 接触阴影 .tj-d-sh：整体右下偏移的深棕柔边（#3a2114 系 + 3 模糊）
+       ——物体「落」在桌面上，光向关系成立；
+     · 循环呼吸撤除（原 halo 完稿接 tj-breathe 3.6s infinite）：
+       「禁止 pulse infinite」——描画完成即静态保持，治游戏 UI 感；
+     · 书强卷弱：卷轴五层整体 ×0.75（指令 §9「卷轴低一档，避免层级倒置」）。
+     保留未动：提亮层（book-lit/scroll-lit）、灯心/外光、点击交互、
+     线条加粗（作者 2026-10-17：「应该更厚一些」）。
+
    素材：assets/桌案/position-ref.webp（作者「参考摆放位置图」，等比 2091/752）
    抠图：assets/桌案/book-lit.webp · scroll-lit.webp（v3.0 预渲染提亮层）
    轮廓：core/tj-desk-paths.js → window.TJ_DESK_PATHS（勿手改，工具生成）
@@ -129,28 +143,44 @@
        且提亮层已改为**无 filter 的预渲染图**（book-lit/scroll-lit），
        不再提合成层，DOM 顺序即权威：desk img → 提亮层 → SVG，回到默认层序。） */
     '.tj-desk-svg{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible}',
-    /* 勾边：暖金光晕＋粗朱砂＋细泥金；pathLength=1 归一化，
-       vector-effect 让线宽是**屏幕像素**（细线不随盘面缩放变糊/变粗）。
+    /* 勾边四层（v4.0）：环境光 / 主轮廓 / 内侧高光 / 接触阴影。
+       pathLength=1 归一化；vector-effect 让线宽是**屏幕像素**（细线不随盘面缩放变糊/变粗）。
+       transform 平移量是 viewBox 用户单位（≈0.61 屏幕 px @1273px 盘宽）——
+       高光偏左上、阴影偏右下，与参考图窗棂光（自左上铺向右下）同一个光向。
        悬停/聚焦只改这组描边与提亮层 —— 物件本体（图画）不位移、不放大、不上浮。
        v3.0（2026-10-17）：三线整体加粗（作者：「包裹的线条不太美观，应该更厚一些」），
-       halo 由砖红改暖金（选中态用金，符合设计系统），并加呼吸。 */
+       halo 由砖红改暖金（选中态用金，符合设计系统）。
+       v4.0（2026-10-17）：补内侧高光 + 接触阴影（治「同心均匀描边=贴纸感」），
+       撤循环呼吸（禁 pulse infinite），卷轴五层 ×0.75 低一档。 */
     '.tj-dstrokes path{fill:none;stroke-linecap:round;stroke-linejoin:round;',
     'stroke-dasharray:1;stroke-dashoffset:0;opacity:0;vector-effect:non-scaling-stroke;',
     'transition:opacity 320ms var(--ease,cubic-bezier(.22,.8,.2,1))}',
     '.tj-d-halo{stroke:rgba(201,162,74,.34);stroke-width:7px}',
     '.tj-d-zhu{stroke:#a8322a;stroke-width:2.6px}',
     '.tj-d-gold{stroke:#b8955a;stroke-width:1.4px}',
-    /* 描画动画：从起点沿轮廓走一圈（dashoffset 1→0），朱砂先动、泥金错位跟进；
-       halo 走完后接呼吸（opacity .72↔1，3.6s）——「灯下」的常亮不刺眼。
+    /* v4.0 内侧高光：偏左上一条细暖白金（#f4d99c 系）—— 纸边的反光 */
+    '.tj-d-in{stroke:rgba(244,217,156,.34);stroke-width:1.2px}',
+    /* v4.0 接触阴影：右下偏移的深棕柔边（#3a2114 系，模糊见 #tj-dsh）—— 物体落在桌面上 */
+    '.tj-d-sh{stroke:rgba(58,33,20,.34);stroke-width:2.6px}',
+    /* v4.0 书强卷弱：卷轴五层整体 ×0.75（指令 §9「卷轴低一档，避免视觉层级倒置」） */
+    '.tj-dobj-scroll .tj-d-halo{stroke:rgba(201,162,74,.26)}',
+    '.tj-dobj-scroll .tj-d-zhu{stroke:rgba(168,50,42,.75)}',
+    '.tj-dobj-scroll .tj-d-gold{stroke:rgba(184,149,90,.75)}',
+    '.tj-dobj-scroll .tj-d-in{stroke:rgba(244,217,156,.26)}',
+    '.tj-dobj-scroll .tj-d-sh{stroke:rgba(58,33,20,.26)}',
+    /* 描画动画：从起点沿轮廓走一圈（dashoffset 1→0），朱砂先动、泥金错位跟进，
+       高光与阴影收尾（0/60/140/200/260ms 五级错位）；描画完成即静态保持。
+       v4.0 撤除了 halo 的 tj-breathe 循环呼吸（指令 §8 禁 pulse infinite）。
        注意：opacity 的显形**必须写在 keyframes 里**（与 is-lit 规则双保险）——
        实测 Blink 下 animation fill-forwards 期间仅靠 is-lit 规则的 opacity 层叠值
       会被压成 0（2026-10-17 无头自检踩坑），keyframes 内声明则两条路都稳。 */
     '.tj-dobj.is-lit .tj-dstrokes path,.tj-dobj:focus-within .tj-dstrokes path{opacity:1}',
-    '.tj-dobj.is-lit .tj-d-halo,.tj-dobj:focus-within .tj-d-halo{animation:tj-draw 560ms var(--ease,cubic-bezier(.22,.8,.2,1)) forwards,tj-breathe 3.6s ease-in-out 620ms infinite}',
+    '.tj-dobj.is-lit .tj-d-halo,.tj-dobj:focus-within .tj-d-halo{animation:tj-draw 560ms var(--ease,cubic-bezier(.22,.8,.2,1)) forwards}',
     '.tj-dobj.is-lit .tj-d-zhu,.tj-dobj:focus-within .tj-d-zhu{animation:tj-draw 560ms var(--ease,cubic-bezier(.22,.8,.2,1)) 60ms forwards}',
     '.tj-dobj.is-lit .tj-d-gold,.tj-dobj:focus-within .tj-d-gold{animation:tj-draw 560ms var(--ease,cubic-bezier(.22,.8,.2,1)) 140ms forwards}',
+    '.tj-dobj.is-lit .tj-d-in,.tj-dobj:focus-within .tj-d-in{animation:tj-draw 560ms var(--ease,cubic-bezier(.22,.8,.2,1)) 200ms forwards}',
+    '.tj-dobj.is-lit .tj-d-sh,.tj-dobj:focus-within .tj-d-sh{animation:tj-draw 560ms var(--ease,cubic-bezier(.22,.8,.2,1)) 260ms forwards}',
     '@keyframes tj-draw{0%{stroke-dashoffset:1;opacity:1}100%{stroke-dashoffset:0;opacity:1}}',
-    '@keyframes tj-breathe{0%,100%{opacity:.72}50%{opacity:1}}',
     /* v3.0 灯心：书皮/纸面上的柔光斑（SVG 椭圆 + 大模糊），色随时辰（--tj-core） */
     '.tj-d-core{fill:var(--tj-core);opacity:0;',
     'transition:opacity 520ms var(--ease,cubic-bezier(.22,.8,.2,1))}',
@@ -216,7 +246,9 @@
     '.tj-scene,.tj-dstrokes path,.tj-cut,.tj-d-core,.tj-d-ring,[data-tj-panel]{transition-duration:1ms!important;animation:none!important}',
     /* 降级：勾边不做描画动画，聚焦/悬停直接显形 */
     '.tj-dobj.is-lit .tj-d-zhu,.tj-dobj:focus-within .tj-d-zhu,',
-    '.tj-dobj.is-lit .tj-d-gold,.tj-dobj:focus-within .tj-d-gold{opacity:1;stroke-dashoffset:0}',
+    '.tj-dobj.is-lit .tj-d-gold,.tj-dobj:focus-within .tj-d-gold,',
+    '.tj-dobj.is-lit .tj-d-in,.tj-dobj:focus-within .tj-d-in,',
+    '.tj-dobj.is-lit .tj-d-sh,.tj-dobj:focus-within .tj-d-sh{opacity:1;stroke-dashoffset:0}',
     '.tj-dobj.is-lit .tj-d-halo,.tj-dobj:focus-within .tj-d-halo{opacity:1;stroke-dashoffset:0}',
     '.tj-dobj.is-lit .tj-d-core,.tj-dobj:focus-within .tj-d-core{opacity:.9}',
     '.tj-dobj.is-lit .tj-d-ring,.tj-dobj:focus-within .tj-d-ring{opacity:.42}',
@@ -272,10 +304,14 @@
     if (!DP || !DP.book || !DP.scroll) return '';
     var W = DP.W || 2091, H = DP.H || 752;
     function strokes(d, masked) {
+      /* v4.0 五层，绘制序（底→顶）：接触阴影（落在桌面上）→ 环境光 → 主轮廓
+         → 泥金 → 内侧高光（贴在物件边缘）。transform 平移为用户单位。 */
       return '<g class="tj-dstrokes"' + (masked ? ' mask="url(#tj-dmask)"' : '') + '>' +
+        '<path class="tj-d-sh"   d="' + d + '" pathLength="1" transform="translate(2.8,3.6)" filter="url(#tj-dsh)"/>' +
         '<path class="tj-d-halo" d="' + d + '" pathLength="1"/>' +
         '<path class="tj-d-zhu"  d="' + d + '" pathLength="1"/>' +
-        '<path class="tj-d-gold" d="' + d + '" pathLength="1"/></g>';
+        '<path class="tj-d-gold" d="' + d + '" pathLength="1"/>' +
+        '<path class="tj-d-in"   d="' + d + '" pathLength="1" transform="translate(-2.2,-2.2)"/></g>';
     }
     /* 裁剪掩模：白底 + 书体轮廓（外扩线）涂黑 → 卷轴勾边在书下消失 */
     return '<svg class="tj-desk-svg" viewBox="0 0 ' + W + ' ' + H + '" ' +
@@ -288,7 +324,11 @@
       '<feGaussianBlur stdDeviation="40"/></filter>' +
       /* v3.0 外光：更大的柔光晕（物件背后透出的「拿起」感） */
       '<filter id="tj-dwide" x="-60%" y="-60%" width="220%" height="220%">' +
-      '<feGaussianBlur stdDeviation="64"/></filter></defs>' +
+      '<feGaussianBlur stdDeviation="64"/></filter>' +
+      /* v4.0 接触阴影柔边：小模糊（stdDeviation 3 用户单位 ≈1.8 屏幕 px @0.61 缩放），
+         区域留出偏移(≈4 单位)+模糊的余量 */
+      '<filter id="tj-dsh" x="-6%" y="-6%" width="112%" height="112%">' +
+      '<feGaussianBlur stdDeviation="3"/></filter></defs>' +
       '<g class="tj-dobj tj-dobj-scroll">' +
         strokes(DP.scroll.line, true) +
         /* 2026-10-10 修：卷轴的**命中区**也要套同一张书形掩模。
