@@ -704,15 +704,18 @@
     renderSlip(d, loc);
     renderYear(d, loc);
 
+    /* 黄历（今明后三日）——条目池与滚动在 core/tj-almanac.js（同源 uid197）。
+       **必须先渲染**：它重建 #lingHuangliNote 的 innerHTML，
+       朱针副题要在它之后写才对得上号（2026-10-16 修：原先先写副题再渲染黄历，
+       刚写进去的「朱针指当下」被 innerHTML 整个覆盖，成了死代码）。 */
+    if (window.TJAlmanac) { try { window.TJAlmanac.render(state); } catch (e) { console.warn('[棠郡] 黄历渲染失败：', e); } }
+
     /* 轮下小注（2026-10-10 挪：原「点一节，看它的笺」位让给黄历，
        朱针当下信息改写进黄历块头的副题） */
     var note = document.getElementById('lingHuangliNote');
     if (note && loc) {
       note.textContent = '朱针指当下：' + (loc.center[1] || '') + ' · ' + (loc.center[2] || '');
     }
-
-    /* 黄历（今明后三日）——条目池与滚动在 core/tj-almanac.js（同源 uid197） */
-    if (window.TJAlmanac) { try { window.TJAlmanac.render(state); } catch (e) { console.warn('[棠郡] 黄历渲染失败：', e); } }
     var fm = document.getElementById('lingFootMonth');
     if (fm) {
       fm.textContent = d ? (d.leap ? '闰' : '') +
