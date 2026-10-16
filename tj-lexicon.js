@@ -173,45 +173,47 @@ window.TJLex = (function () {
     ],
   };
 
-  /* ---- 立绘三视图（2026-10-04 作者给图）----
+  /* ---- 立绘三视图（2026-10-16 作者画廊全量替换，旧图全数作废）----
      人·传页的立绘**点击可换**：点一下换下一张，循环；换图是叠一层淡入（见 tj-ren.js
      的 crossfade），不闪白、不跳版。顺序即默认显示顺序，[0] 也是扇面/其他处使用的正图。
-     素材：六张原图 → assets（min 边 768、webp q86；栾的旧单图存 assets/_src/）。 */
+     2026-10-16：作者画廊（E:\浏览器下载\世界观设计\画廊\画廊）五人新图全量替换旧立绘，
+     旧 20 张已删；入库规范不变（min 边 768、webp q86）。张数：姜5 / 栾3 / 薇4 / 甄4 / 苏7。 */
   var PORTRAITS = {
     '姜俞姒': [
       'assets/npc-jiangyusi.webp',
       'assets/npc-jiangyusi-2.webp',
       'assets/npc-jiangyusi-3.webp',
+      'assets/npc-jiangyusi-4.webp',
+      'assets/npc-jiangyusi-5.webp',
     ],
     '栾令采': [
       'assets/npc-luanlingcai.webp',
       'assets/npc-luanlingcai-2.webp',
       'assets/npc-luanlingcai-3.webp',
     ],
-    /* 薇薇迁喜：2026-10-06 作者给图五张，全数入库（min 边 768、webp q86）。
-       [0] 为扇面/传页正图；顺序按原图文件时间，作者可随时调换。 */
+    /* 薇薇迁喜：2026-10-16 作者画廊四张全数入库（正脸/全身/侧脸/生活态）。 */
     '薇薇迁喜': [
       'assets/npc-weiweiqianxi.webp',
       'assets/npc-weiweiqianxi-2.webp',
       'assets/npc-weiweiqianxi-3.webp',
       'assets/npc-weiweiqianxi-4.webp',
-      'assets/npc-weiweiqianxi-5.webp',
     ],
-    /* 苏芄：2026-10-07 作者给图四张，全数入库（min 边 768、webp q86） */
+    /* 苏芄：2026-10-16 作者画廊七张全数入库（f171d1a4/全身/侧脸/俯视/3/完全侧脸/头肩特写）。 */
     '苏芄': [
       'assets/npc-supeng.webp',
       'assets/npc-supeng-2.webp',
       'assets/npc-supeng-3.webp',
       'assets/npc-supeng-4.webp',
+      'assets/npc-supeng-5.webp',
+      'assets/npc-supeng-6.webp',
+      'assets/npc-supeng-7.webp',
     ],
-    /* 甄娥：2026-10-08 作者给图五张，全数入库（min 边 768、webp q86）。
-       [0] 为扇面/传页正图；顺序按作者编号 1→5，可随时调换。 */
+    /* 甄娥：2026-10-16 作者画廊四张全数入库（正脸/半身/侧脸/2）。 */
     '甄娥': [
       'assets/npc-zhene.webp',
       'assets/npc-zhene-2.webp',
       'assets/npc-zhene-3.webp',
       'assets/npc-zhene-4.webp',
-      'assets/npc-zhene-5.webp',
     ],
   };
 
