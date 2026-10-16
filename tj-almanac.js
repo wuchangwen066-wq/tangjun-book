@@ -8,6 +8,8 @@
      只有「后日」是新抽的（同一函数天然满足，无需存档）
    · 节日优先：撞节日写节日，不抽宜忌
    · 条目池 20 条带权重：大吉/大凶少，平日居多，免得天天极端
+   · 相邻两日不雷同（2026-10-16 实现：pick 带 avoid，换盐重抽）；
+     开局铁律同 uid197（2026-10-13 作者补）：日序一恒大吉、前十日禁大凶
    · UI 只展示 今/明/后 三天
    注意：条目池与 uid197（世界书侧）同源同文——**改任一侧必须同步另一侧**。
    ================================================================== */
@@ -54,19 +56,60 @@
     return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
   }
 
-  /* 加权抽签：dayKey = 日序*3 + 槽位，槽间撞条目则换盐重抽（确定性） */
-  function pick(dayKey) {
+  /* 加权抽签（2026-10-16 重写）：
+     dayKey = 日序*3 + 槽位；avoid 里的条目跳过——抽中了就换盐重抽（确定性）；
+     tiers 限定档位（开局铁律用：首日只抽大吉、前十日禁大凶）。
+     关键：无 tiers 时候选集就是全池、权重累积与旧版逐字节同序，
+     故**没撞 avoid 的日子结果与旧版完全一致**（不无谓改口）；
+     只有抽中 avoid 才换盐（仍在同一候选集上重抽）。 */
+  function pick(dayKey, avoid, tiers) {
+    avoid = avoid || [];
+    var idxs = [];
+    for (var i = 0; i < POOL.length; i++) {
+      if (!tiers || tiers.indexOf(POOL[i].级) >= 0) idxs.push(i);
+    }
+    var total = 0, j;
+    for (j = 0; j < idxs.length; j++) total += WEIGHTS[POOL[idxs[j]].级];
     for (var salt = 0; salt < 8; salt++) {
       var r = hash(dayKey * 31 + salt * 7 + 13);
-      var total = 0, i;
-      for (i = 0; i < POOL.length; i++) total += WEIGHTS[POOL[i].级];
       var acc = r * total;
-      for (i = 0; i < POOL.length; i++) {
-        acc -= WEIGHTS[POOL[i].级];
-        if (acc < 0) return i;
+      for (j = 0; j < idxs.length; j++) {
+        acc -= WEIGHTS[POOL[idxs[j]].级];
+        if (acc < 0) {
+          if (avoid.indexOf(idxs[j]) < 0) return idxs[j];
+          break;   /* 撞上 avoid：换盐重抽 */
+        }
       }
     }
-    return POOL.length - 1;
+    /* 八盐全撞：候选集里按顺序找第一个不在 avoid 的（仍确定性） */
+    for (j = 0; j < idxs.length; j++) if (avoid.indexOf(idxs[j]) < 0) return idxs[j];
+    return idxs[idxs.length - 1];
+  }
+
+  /* 开局铁律（与世界书 uid197 同源，2026-10-13 作者补，2026-10-16 UI 侧实现）：
+     日序一恒大吉（从两条大吉中择一）；日序一至十禁大凶。
+     日序 = abs − 360：丁未为册中元年，开局锚定丁未年十月二日（InitVar canonical）。 */
+  function storyDayOf(absDay) { return absDay - 360; }
+  function tierRuleOf(absDay) {
+    var sd = storyDayOf(absDay);
+    if (sd === 1) return ['大吉'];
+    if (sd >= 2 && sd <= 10) return ['大吉', '小吉', '小凶', '平'];
+    return null;
+  }
+
+  /* 日签缓存 + 避昨日递归：absDay -> 池下标（-1 = 无昨日可避）。
+     相邻两日不雷同靠「避开昨日那一支」实现；递归取昨日签，
+     保证「昨天的明日」与「今天的今日」永远是同一支——滚动不改口。 */
+  var dayIdxCache = {};
+  function poolIdxOfDay(absDay) {
+    if (absDay <= 0) return -1;
+    if (dayIdxCache[absDay] !== undefined) return dayIdxCache[absDay];
+    var avoid = [];
+    var prev = poolIdxOfDay(absDay - 1);
+    if (prev >= 0) avoid.push(prev);
+    var idx = pick(absDay * 3 + 1, avoid, tierRuleOf(absDay));
+    dayIdxCache[absDay] = idx;
+    return idx;
   }
 
   /* 某日宜忌：先查节日，撞节日写节日不抽黄历 */
@@ -75,7 +118,9 @@
     if (f) {
       return { 级: '节', 名: f.name, 文: f.text, 宜: '', 忌: '' };
     }
-    var e = POOL[pick(absDay * 3 + 1)];
+    var idx = poolIdxOfDay(absDay);
+    if (idx < 0) idx = pick(absDay * 3 + 1);   // absDay<=0 的防御分支
+    var e = POOL[idx];
     return { 级: e.级, 宜: e.宜, 忌: e.忌, 市: e.市井, 钩: e.钩子 };
   }
 
