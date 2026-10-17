@@ -367,59 +367,127 @@
   }
 
   /* 一天一行 */
-  /* ---------- 版式（2026-10-18 美化）：历页 + 分栏 + 等第印 + 宜忌章 ----------
-     只改 DOM 与类名；等第/宜/忌文案原样呈现，数据读取与抽签逻辑未动。 */
+  /* ---------- 版式（2026-10-18 v3）：朱线挂三块木牌 ----------
+     只改展示层：等第/宜忌/节俗文案原样呈现；数据读取与抽签逻辑未动。
+     竖排 row-reverse：日名 → 等第 → 宜 → 忌（自右向左读）。
+     牌面画在 ::before 上，孔/线/字层 position 非 static 以盖在牌面之上。 */
 
-  /* 等第印：方印，两字上下各一字，平单字居中；沿用 .seal 的印泥/毛边语汇 */
-  function sealHtml(tier, big) {
-    var chars = tier === '平' ? ['平'] : [tier.charAt(0), tier.charAt(1)];
-    return '<div class="al-seal' + (big ? ' al-seal-lg' : '') + ' is-' + tier + '">' +
-      chars.map(function (c) { return '<span>' + esc(c) + '</span>'; }).join('') +
-      '</div>';
+  /* 事项拆分：'立约·交易' → ['立约','交易']；超过 max 项以 … 收尾（全文在 data-tip） */
+  function splitItems(s) {
+    return String(s || '').split('·').map(function (x) { return x.trim(); }).filter(Boolean);
   }
-  /* 宜/忌：事项之间的 · 用淡色分隔，字距加宽；折行悬挂缩进（CSS 对齐字章） */
-  function itemsHtml(s) {
-    return String(s || '').split('·').map(function (x) {
-      return '<i>' + esc(x) + '</i>';
-    }).join('<em>·</em>');
+  function itemsHtml(arr, max) {
+    var shown = arr.slice(0, max).map(function (x) { return '<span class="it">' + esc(x) + '</span>'; }).join('');
+    return arr.length > max ? shown + '<span class="it al-more">…</span>' : shown;
   }
-  function yijiHtml(宜, 忌, cls) {
-    var h = '<div class="al-yiji ' + cls + '">' +
-      '<div class="al-line"><b class="al-stamp al-stamp-yi">宜</b>' +
-      '<span class="al-items">' + itemsHtml(宜) + '</span></div>';
-    if (忌 && 忌 !== '无') {
-      h += '<div class="al-line"><b class="al-stamp al-stamp-ji">忌</b>' +
-        '<span class="al-items">' + itemsHtml(忌) + '</span></div>';
-    }
-    return h + '</div>';
-  }
-  /* 日名标：朱点 + 日名（今日朱、明后淡墨） */
-  function tagHtml(tag, m, d, major) {
-    var sub = (d <= 30 && CN[d]) ? '' : '';
-    return '<div class="al-daytag' + (major ? ' is-major' : '') + '">' +
-      '<i class="al-dot"></i><span>' + tag + '</span></div>';
-  }
-  /* 一日一块：major=今日（大印+两行），否则次块（小印+单行） */
-  function dayBlockHtml(tag, m, d, absDay, major) {
+
+  /* 一日一牌。today=true 为今日牌（大，带宜忌栏） */
+  function paiHtml(tag, m, d, absDay, today) {
     var e = entryOfDay(m, d, absDay);
+    var grade;
+    var cls = today ? 'tj-pai--today' : 'tj-pai--mini';
+
     if (e.级 === '节') {
-      return '<div class="al-row al-fest' + (major ? ' al-major' : '') + '">' +
-        tagHtml(tag, m, d, major) +
-        '<div class="al-fest-body"><b class="al-fest-name">' + esc(e.名) + '</b>' +
-        '<span class="al-fest-text">' + esc(String(e.文 || '')) + '</span></div></div>';
+      /* 节日：朱漆牌，只刻日名 + 节名（无宜忌） */
+      return '<article class="tj-pai ' + cls + '" data-grade="节" tabindex="0"' +
+        ' data-tip="' + esc(e.名 + '：' + String(e.文 || '')) + '">' +
+        '<i class="tj-pai__hole"></i><i class="tj-pai__cord"></i>' +
+        '<div class="tj-pai__cols">' +
+        '<span class="tj-pai__day">' + tag + '</span>' +
+        '<span class="tj-pai__grade">' + esc(e.名) + '</span>' +
+        '</div></article>';
     }
-    var tier = e.级 === '异' ? e.名 : e.级;   /* 异日以名作印文（朔日/望日/月底取首二字） */
-    var sealTxt = e.级 === '异' ? e.名.substring(0, 2) : e.级;
-    var seal = e.级 === '异'
-      ? '<div class="al-seal' + (major ? ' al-seal-lg' : '') + ' is-yiri">' +
-        '<span>' + esc(sealTxt.charAt(0)) + '</span><span>' + esc(sealTxt.charAt(1)) + '</span></div>'
-      : sealHtml(e.级, major);
-    var cls = major ? 'al-major' : 'al-minor';
-    return '<div class="al-row al-day ' + cls + ' is-' + (e.级 === '异' ? 'yiri' : e.级) + '" title="' + esc(e.市 || '') + '">' +
-      tagHtml(tag, m, d, major) +
-      '<div class="al-body">' + seal +
-      yijiHtml(e.宜, e.忌, major ? 'is-major' : 'is-minor') +
-      '</div></div>';
+
+    var yiArr = splitItems(e.宜);
+    var jiArr = (e.忌 && e.忌 !== '无') ? splitItems(e.忌) : [];
+    var tip = e.级 + '　宜 ' + yiArr.join('·') + (jiArr.length ? '　忌 ' + jiArr.join('·') : '');
+
+    if (e.级 === '异') {
+      grade = '异';
+      var colsY = '<span class="tj-pai__day">' + tag + '</span>' +
+        '<span class="tj-pai__grade">' + esc(e.名) + '</span>';
+      if (today) {
+        colsY += '<span class="tj-pai__yi"><b>宜</b>' + itemsHtml(yiArr, 2) + '</span>';
+        if (jiArr.length) colsY += '<span class="tj-pai__ji"><b>忌</b>' + itemsHtml(jiArr, 2) + '</span>';
+      }
+      return '<article class="tj-pai ' + cls + '" data-grade="' + grade + '" tabindex="0"' +
+        ' data-tip="' + esc(tip) + '">' +
+        '<i class="tj-pai__hole"></i><i class="tj-pai__cord"></i>' +
+        '<div class="tj-pai__cols">' + colsY + '</div></article>';
+    }
+
+    grade = e.级;
+    var cols = '<span class="tj-pai__day">' + tag + '</span>' +
+      '<span class="tj-pai__grade">' + esc(e.级) + '</span>';
+    if (today) {
+      cols += '<span class="tj-pai__yi"><b>宜</b>' + itemsHtml(yiArr, 2) + '</span>';
+      if (jiArr.length) cols += '<span class="tj-pai__ji"><b>忌</b>' + itemsHtml(jiArr, 2) + '</span>';
+    }
+    return '<article class="tj-pai ' + cls + '" data-grade="' + grade + '" tabindex="0"' +
+      ' data-tip="' + esc(tip) + '">' +
+      '<i class="tj-pai__hole"></i><i class="tj-pai__cord"></i>' +
+      '<div class="tj-pai__cols">' + cols + '</div></article>';
+  }
+
+  /* ---------- 悬停/点按提示（明/后日刻字少，宜忌靠它） ---------- */
+  var tipEl = null;
+  function ensureTip(box) {
+    if (tipEl && tipEl.parentNode) return tipEl;
+    tipEl = document.createElement('div');
+    tipEl.className = 'tj-tip';
+    tipEl.hidden = true;
+    box.appendChild(tipEl);
+    return tipEl;
+  }
+  function bindTips(box) {
+    if (!box) return;
+    var tip = ensureTip(box);
+    function show(el) {
+      var t = el.getAttribute('data-tip');
+      if (!t) return;
+      tip.textContent = t;
+      tip.hidden = false;
+      var r = el.getBoundingClientRect();
+      var pr = box.getBoundingClientRect();
+      var left = r.left - pr.left + r.width / 2;
+      tip.style.left = Math.max(4, Math.min(left, pr.width - 8)) + 'px';
+      tip.style.top = (r.top - pr.top + r.height * 0.35) + 'px';
+    }
+    function hide() { tip.hidden = true; }
+    Array.prototype.forEach.call(box.querySelectorAll('.tj-pai'), function (el) {
+      el.addEventListener('mouseenter', function () { show(el); });
+      el.addEventListener('mouseleave', hide);
+      el.addEventListener('focus', function () { show(el); });
+      el.addEventListener('blur', hide);
+      el.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        if (tip.hidden) show(el); else hide();
+      });
+    });
+    box.addEventListener('click', hide);
+  }
+
+  /* ---------- 副行：tj-ling 会往 #lingHuangliNote 写整串（「朱针指当下：X · Y」），
+     这里把它按「 · 」拆成段，段间才允许折行；含「无节」的段上朱色。
+     纯展示处理，不改任何读取逻辑。 ---------- */
+  var noteObs = null;
+  function splitNote(note) {
+    if (!note) return;
+    var raw = note.textContent || '';
+    if (!raw || note.getAttribute('data-split') === raw) return;
+    var parts = raw.split(/\s*·\s*/).filter(function (x) { return x.trim(); });
+    if (parts.length < 2) return;
+    note.innerHTML = parts.map(function (s) {
+      var cls = /无节/.test(s) ? ' class="al-kong"' : '';
+      return '<span' + cls + '>' + esc(s) + '</span>';
+    }).join('<i class="al-sep"></i>');
+    note.setAttribute('data-split', raw);
+  }
+  function watchNote(box) {
+    var note = document.getElementById('lingHuangliNote');
+    if (!note || noteObs) return;
+    noteObs = new MutationObserver(function () { splitNote(note); });
+    noteObs.observe(note, { childList: true, characterData: true, subtree: true });
   }
 
   /* ---------- 渲染：令·左页 #lingHuangli ---------- */
@@ -432,18 +500,35 @@
     if (!p) { box.innerHTML = ''; box.hidden = true; return; }
     var t1 = addDays(p.m, p.d, 1);
     var t2 = addDays(p.m, p.d, 2);
+
     var html = '';
-    html += '<div class="block-head">黄历' +
-      '<span class="nianpu-count al-sub" id="lingHuangliNote">今明后三日 · 全城通行</span></div>';
-    html += '<div class="al-sheet">';
-    html += '<div class="al-main">' + dayBlockHtml('今日', p.m, p.d, p.abs, true) + '</div>';
-    html += '<div class="al-side">';
-    html += dayBlockHtml('明日', t1.m, t1.d, p.abs + 1, false);
-    html += '<div class="al-rule-minor"></div>';
-    html += dayBlockHtml('后日', t2.m, t2.d, p.abs + 2, false);
-    html += '</div></div>';
+    html += '<section class="tj-hl" aria-label="黄历">';
+    html += '<header class="tj-hl__head">' +
+      '<h3 class="tj-hl__title block-head">黄历</h3>' +
+      '<p class="tj-hl__sub"><span class="al-when" id="lingHuangliNote"></span></p>' +
+      '</header>';
+    html += '<div class="tj-hl__board">' +
+      '<i class="tj-hl__rope"></i>' +
+      '<i class="tj-hl__peg tj-hl__peg--l"></i>' +
+      '<i class="tj-hl__peg tj-hl__peg--r"></i>' +
+      paiHtml('今日', p.m, p.d, p.abs, true) +
+      paiHtml('明日', t1.m, t1.d, p.abs + 1, false) +
+      paiHtml('后日', t2.m, t2.d, p.abs + 2, false) +
+      '</div></section>';
+
     box.hidden = false;
     box.innerHTML = html;
+
+    /* 轻摆一次（换日/进页），错落 90ms */
+    Array.prototype.forEach.call(box.querySelectorAll('.tj-pai'), function (el, i) {
+      el.classList.remove('is-swing');
+      void el.offsetWidth;
+      el.style.animationDelay = (i * 90) + 'ms';
+      el.classList.add('is-swing');
+    });
+    bindTips(box);
+    watchNote(box);
+    splitNote(document.getElementById('lingHuangliNote'));
   }
 
   window.TJAlmanac = {
