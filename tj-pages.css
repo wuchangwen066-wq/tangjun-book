@@ -792,7 +792,165 @@
 }
 /* 2026-10-15 作者：副题「今明后三日」与「黄历」基线对齐（原 align-items:center
    让小字悬在大字半腰，位置奇怪）；朱点无基线，单独保持居中 */
-.almanac .block-head { align-items: baseline; margin-bottom: 2px; }
+
+/* ==========================================================
+   黄历 · 历页版式（2026-10-18 美化）：只改视觉层
+   令牌全取现有：--paper-hi/--zhu/--zhu-text/--ink/--ink-2/--ink-3、
+   --font-brush/--font-kai/--font-song；不引入新字体与新色值
+   （需要更淡处，用现有色的透明度派生）。
+   印沿用 .seal 语汇（拆层毛边 + 极淡朱晕），线沿用 .ink-rule 的干笔感。
+   ========================================================== */
+.almanac { width: 100%; max-width: 340px; margin-top: 16px; }
+.almanac .block-head {
+  align-items: baseline;
+  margin-bottom: 6px;
+  justify-content: space-between;
+}
+.almanac .block-head::before { align-self: center; }
+/* 副题：缩小一档、淡墨、右对齐，'本月无节' 保留朱色（由 JS 写入时包 <em class=al-kong>） */
+.almanac .al-sub {
+  margin-left: auto;
+  font-family: var(--font-song);
+  font-size: var(--fs-micro);
+  color: var(--ink-2);
+  letter-spacing: .04em;
+  text-align: right;
+}
+.almanac .al-sub .al-kong { color: var(--zhu-text); }
+
+/* --- 历页：淡纸底 + 上下极细墨线 + 左缘朱竖条 --- */
+.al-sheet {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  padding: 8px 10px 9px;
+  background: color-mix(in srgb, var(--paper-hi) 82%, transparent);
+  border-top: 1px solid rgba(31,27,22,.22);
+  border-bottom: 1px solid rgba(31,27,22,.22);
+  border-left: 2px solid var(--zhu);
+  border-radius: 2px;
+}
+.al-main { flex: 0 0 55%; min-width: 0; }
+.al-side { flex: 1 1 45%; min-width: 0; display: flex; flex-direction: column; }
+/* 次块之间：干笔感细线（沿用 .ink-rule 的 mask 手法），线位像素对齐 */
+.al-rule-minor {
+  height: 5px;
+  margin: 4px 0 5px;
+  background: linear-gradient(90deg, transparent, rgba(31,27,22,.34) 14%, rgba(31,27,22,.26) 62%, transparent);
+  -webkit-mask-image: radial-gradient(60% 100% at 50% 50%, #000 40%, transparent 100%);
+          mask-image: radial-gradient(60% 100% at 50% 50%, #000 40%, transparent 100%);
+}
+/* --- 日名标 --- */
+.al-daytag {
+  display: flex; align-items: center; gap: 4px;
+  font-family: var(--font-song); font-size: var(--fs-micro);
+  color: var(--ink-2); letter-spacing: .08em; margin-bottom: 3px;
+}
+.al-daytag.is-major { color: var(--zhu-text); }
+.al-dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--zhu); opacity: .85; flex: none;
+}
+/* --- 一日块 --- */
+.al-row { display: block; min-width: 0; }
+.al-body { display: flex; align-items: flex-start; gap: 7px; }
+.al-yiji { flex: 1 1 auto; min-width: 0; }
+.al-line { display: flex; align-items: baseline; gap: 5px; margin: 0 0 2px; }
+.al-line:last-child { margin-bottom: 0; }
+/* 宜/忌小字章：细圆角方框 */
+.al-stamp {
+  flex: none;
+  width: 19px; height: 19px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font-song); font-size: 12px; font-weight: 700;
+  border-radius: 3px;
+  line-height: 1;
+}
+.al-stamp-yi { color: var(--zhu-text); border: 1px solid rgba(143,42,35,.55); background: rgba(168,50,42,.07); }
+.al-stamp-ji { color: var(--ink-2); border: 1px solid rgba(31,27,22,.34); background: rgba(31,27,22,.05); }
+/* 事项：· 淡色、字距加宽；折行悬挂缩进与字章对齐 */
+.al-items {
+  font-family: var(--font-kai);
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--ink);
+  letter-spacing: .12em;
+  padding-left: 0;
+  text-indent: 0;
+}
+.al-items i { font-style: normal; }
+.al-items em { font-style: normal; color: var(--ink-3); padding: 0 .18em; letter-spacing: 0; }
+.al-yiji.is-minor .al-items { font-size: 13.5px; color: var(--ink-2); }
+.al-day.al-minor .al-items { letter-spacing: .06em; }
+
+/* --- 等第印：五档靠「填充+描边+色」三重区分 --- */
+.al-seal {
+  position: relative; z-index: 0; flex: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 30px; height: 30px;
+  font-family: var(--font-song); font-weight: 700; font-size: 14px; line-height: 1.02;
+  border-radius: 3px;
+  transform: rotate(-2.5deg);
+}
+.al-seal-lg { width: 60px; height: 60px; font-size: 27px; border-radius: 4px; }
+.al-seal span { display: block; }
+/* 大吉：朱砂实心，纸色字 */
+.al-seal.is-大吉 { background: linear-gradient(150deg, var(--zhu), #7d221c); color: #f4e8da; box-shadow: inset 0 1px 0 rgba(255,220,190,.26), inset 0 -2px 3px rgba(58,13,10,.5); }
+/* 小吉：朱红描边，朱红字，无填充 */
+.al-seal.is-小吉 { background: none; border: 1.5px solid var(--zhu); color: var(--zhu-text); }
+/* 平：淡墨细描边，墨灰字（最小最淡，让平日安静） */
+.al-seal.is-平 { background: none; border: 1px solid rgba(90,82,68,.42); color: var(--ink-2); font-size: 13px; }
+.al-seal-lg.is-平 { font-size: 25px; }
+/* 小凶：浓墨描边（略粗），墨字，无填充 */
+.al-seal.is-小凶 { background: none; border: 2px solid rgba(31,27,22,.72); color: var(--ink); }
+/* 大凶：墨黑实心，纸色字（呼应岁轮冬半深色块） */
+.al-seal.is-大凶 { background: linear-gradient(150deg, #2b241d, #16120e); color: #f4e8da; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), inset 0 -2px 3px rgba(0,0,0,.45); }
+/* 异日：泥金细边，赭字 */
+.al-seal.is-yiri { background: none; border: 1.5px solid var(--nijin); color: var(--zhe); }
+/* 今日印极淡朱晕（只今日，不叠投影） */
+.al-seal-lg.is-大吉::after,
+.al-seal-lg.is-大凶::after {
+  content: ""; position: absolute; inset: -3px; z-index: -2;
+  background: rgba(121,34,27,.13); filter: blur(5px); border-radius: 5px;
+}
+/* 次块整体降到约七成墨色，形成近远层次 */
+.al-day.al-minor .al-items { color: rgba(31,27,22,.72); }
+.al-day.al-minor .al-stamp { opacity: .78; }
+.al-day.al-minor .al-seal { opacity: .82; }
+
+/* --- 节日行 --- */
+.al-fest-body { display: flex; flex-direction: column; gap: 1px; }
+.al-fest-name { font-family: var(--font-brush); font-size: 17px; color: var(--zhu-text); font-weight: normal; }
+.al-day.al-major .al-fest-name { font-size: 21px; }
+.al-fest-text { font-family: var(--font-kai); font-size: 13.5px; color: var(--ink-2); line-height: 1.4; }
+
+/* --- 动效：印章一下 + 其余淡入（克制，遵守 prefers-reduced-motion） --- */
+@keyframes al-stamp-in { from { transform: rotate(-2.5deg) scale(1.10); opacity: 0; } to { transform: rotate(-2.5deg) scale(1); opacity: 1; } }
+@keyframes al-rise-in { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
+.al-day.al-major .al-seal { animation: al-stamp-in 180ms ease-out both; }
+.al-day.al-major .al-yiji,
+.al-day.al-major .al-daytag { animation: al-rise-in 220ms ease-out both; }
+.al-side > .al-day { animation: al-rise-in 220ms ease-out both; }
+.al-side > .al-day:last-of-type { animation-delay: 40ms; }
+@media (prefers-reduced-motion: reduce) {
+  .al-day.al-major .al-seal,
+  .al-day.al-major .al-yiji,
+  .al-day.al-major .al-daytag,
+  .al-side > .al-day { animation: none; }
+}
+
+/* --- 窄窗退化为竖排：今日大、明后小 --- */
+@media (max-width: 300px) {
+  .al-sheet { flex-direction: column; }
+  .al-main, .al-side { flex: 1 1 auto; }
+  .al-rule-minor { margin: 5px 0; }
+}
+
+/* 旧类名保留兼容（万一别处还在用）：不再用于新结构，但不破坏 */
+.almanac-row .k { min-width: 3em; color: var(--ink-2); font-size: 14px; }
+.almanac-row .v { font-size: 14px; }
+.almanac-fest { font-family: var(--font-brush); color: var(--zhu-text); font-weight: normal; }
+
 .almanac .block-head::before { align-self: center; }
 .almanac-row .k { min-width: 3em; color: var(--ink-2); font-size: 14px; }
 .almanac-row .v { font-size: 14px; }
