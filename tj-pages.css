@@ -821,10 +821,10 @@
 }
 
 /* 标题行：标题不折行；副行只在分段处折行 */
-.tj-hl__head { display: flex; align-items: baseline; justify-content: space-between; gap: 1em; margin-bottom: .35em; }
+.tj-hl__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .1em .8em; margin-bottom: .35em; }
 .tj-hl__title { flex: none; margin: 0; white-space: nowrap; }
 .tj-hl__sub {
-  flex: 0 1 auto; min-width: 0; margin: 0;
+  flex: 1 1 auto; min-width: 0; margin: 0;
   display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline;
   gap: 0 .5em; font-size: .72em; text-align: right;
   font-family: var(--font-song); color: var(--ink-2); letter-spacing: .03em;
@@ -836,7 +836,7 @@
   border-radius: 50%; background: currentColor; opacity: .45;
   vertical-align: middle; font-style: normal;
 }
-#lingHuangliNote { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 0 .36em; min-width: 0; }
+#lingHuangliNote { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 0 .36em; min-width: 0; max-width: 100%; }
 #lingHuangliNote .al-sep { flex: none; }
 
 /* 挂牌区 */
