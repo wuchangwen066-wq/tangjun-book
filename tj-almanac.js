@@ -106,7 +106,8 @@
       { id: 'ss5', t: '书坊里人多嘴静，纸墨卖得快。', s: ['春', '秋'] },
       { id: 'ss6', t: '药铺收药材，伙计蹲在门槛上分拣。', s: ['春', '秋'] },
       { id: 'ss7', t: '驿路车马多，亭柱边新刻了两个名。', s: ['夏', '秋'] },
-      { id: 'ss8', t: '说书人改了新词，茶楼坐得满。', s: ['冬', '春'] }
+      { id: 'ss8', t: '说书人改了新词，茶楼坐得满。', s: ['冬', '春'] },
+      { id: 'ss9', t: '庙里只给签，不看宜忌；要挑日子还得回坊市买历。', s: ['春', '夏', '秋', '冬'] }
     ],
     '平': [
       { id: 'ps1', t: '照常开市，人流如旧。', s: ['春', '夏', '秋', '冬'] },
@@ -118,7 +119,8 @@
       { id: 'ps7', t: '摆渡人来往如常，木桩上又挂一枚新钱。', s: ['春', '夏', '秋', '冬'] },
       { id: 'ps8', t: '菜市挑担的与主妇相争，只差一文。', s: ['春', '夏', '秋', '冬'] },
       { id: 'ps9', t: '衙门照常视事，署前石阶被磨得发亮。', s: ['春', '夏', '秋', '冬'] },
-      { id: 'ps10', t: '酒肆拼桌的各吃各，粗陶碗摞成塔。', s: ['春', '夏', '秋', '冬'] }
+      { id: 'ps10', t: '酒肆拼桌的各吃各，粗陶碗摞成塔。', s: ['春', '夏', '秋', '冬'] },
+      { id: 'ps11', t: '行首把话压下来，一行人照旧出工。', s: ['春', '夏', '秋', '冬'] }
     ],
     '小凶': [
       { id: 'xs1', t: '铺子半数下了门板，街面冷清。', s: ['冬', '春'] },
@@ -139,7 +141,42 @@
       { id: 'gs5', t: '货栈封了仓，栈桥上只过风。', s: ['春', '夏', '秋', '冬'] },
       { id: 'gs6', t: '渡钱贵了，摆渡人话也短。', s: ['春', '夏', '秋', '冬'] },
       { id: 'gs7', t: '更夫敲得比平日密，没人敢应。', s: ['春', '夏', '秋', '冬'] },
-      { id: 'gs8', t: '商队困在驿亭，马槽里草料省着吃。', s: ['春', '夏', '秋', '冬'] }
+      { id: 'gs8', t: '商队困在驿亭，马槽里草料省着吃。', s: ['春', '夏', '秋', '冬'] },
+      { id: 'gs9', t: '渡口木桩上又多一枚没取的铜钱。', s: ['春', '夏', '秋', '冬'] }
+    ]
+  };
+
+  /* ---------- 空月市井（六月、十月专用）----------
+     本郡六月与十月无节：没节就没由头，没由头就不好开口，也不好送礼——
+     要办的事要么赶在五月前，要么拖到冬至（见「规则·节令如何起事」空月条）。
+     这两个月的市井一律带一层「话搁着、事推到冬至前」的意思，别的照常抽。 */
+  var KONG_MONTHS = [6, 10];
+  var SHIJING_KONG = {
+    '大吉': [
+      { id: 'kg_dj1', t: '办成的喜事也压着不声张，贺仪先记在柜上，等冬至再提。' },
+      { id: 'kg_dj2', t: '好日子也不敢张扬——没节，请不动人；席摆了，话留到冬至。' },
+      { id: 'kg_dj3', t: '嫁娶的鼓吹比往日轻，喜钱先压在柜里，等冬至再补一声。' }
+    ],
+    '小吉': [
+      { id: 'kg_xj1', t: '话说一半就搁住了——没节，谁也不好先开口；事都推到冬至前。' },
+      { id: 'kg_xj2', t: '想提的那句还是没出口；街上照旧热闹，就是没人起话头。' },
+      { id: 'kg_xj3', t: '铺子照开、货照发，唯独「改日」两个字没人敢先说。' }
+    ],
+    '平': [
+      { id: 'kg_p1', t: '街上照旧，只是没人起话头；要办的事都堆着，等冬至。' },
+      { id: 'kg_p2', t: '没节的月份，走动少了；门开着，人坐着，话都留着。' },
+      { id: 'kg_p3', t: '摆渡的照旧来回，木桩上那排钱没人动；这个月谁也不催谁。' },
+      { id: 'kg_p4', t: '柜上没甚动静，账记着不结——等冬至那几天一块儿清。' }
+    ],
+    '小凶': [
+      { id: 'kg_xx1', t: '没由头，话更难开口；欠着的那句还搁着，催也不好催。' },
+      { id: 'kg_xx2', t: '要催的话咽回去三回；这个月没节，上门就是失礼。' },
+      { id: 'kg_xx3', t: '对单子的手都慢些——急着催的，反倒显得没规矩。' }
+    ],
+    '大凶': [
+      { id: 'kg_dx1', t: '连个由头都没有，事就这么悬着；渡口那枚钱还挂着，没人来取。' },
+      { id: 'kg_dx2', t: '没节，连避讳都没个名目；街面冷，人却不敢早关门。' },
+      { id: 'kg_dx3', t: '该办的事全压下了，谁也不说「等冬至」——说了就是要办的意思。' }
     ]
   };
 
@@ -190,6 +227,19 @@
     }
     for (var j = 0; j < arr.length; j++) if (avoid.indexOf(arr[j].id) < 0) return arr[j];
     return arr[arr.length - 1];
+  }
+
+  /* 市井意象：六月/十月（无节空月）优先取空月专用池，其余按当季过滤 */
+  function pickImg(tier, m, key, avoid) {
+    if (KONG_MONTHS.indexOf(m) >= 0 && SHIJING_KONG[tier] && SHIJING_KONG[tier].length) {
+      return pickOne(key * 11 + 41, SHIJING_KONG[tier], avoid);
+    }
+    var pool = [];
+    for (var q = 0; q < SHIJING[tier].length; q++) {
+      if (SHIJING[tier][q].s.indexOf(seasonOf(m)) >= 0) pool.push(SHIJING[tier][q]);
+    }
+    if (!pool.length) pool = SHIJING[tier];
+    return pickOne(key * 7 + 5, pool, avoid);
   }
 
   /* ---------- 节日 ---------- */
@@ -277,12 +327,7 @@
       if (pk.im) avoidS.push(pk.im.id);
     }
     var yj = pickOne(absDay * 5 + 3, YIJI[tier], avoidY);
-    var pool = [];
-    for (var q = 0; q < SHIJING[tier].length; q++) {
-      if (SHIJING[tier][q].s.indexOf(seasonOf(m)) >= 0) pool.push(SHIJING[tier][q]);
-    }
-    if (!pool.length) pool = SHIJING[tier];
-    var im = pickOne(absDay * 7 + 5, pool, avoidS);
+    var im = pickImg(tier, m, absDay, avoidS);
 
     dayCache[absDay] = { tier: tier, yj: yj, im: im };
     return dayCache[absDay];
@@ -290,12 +335,7 @@
   /* 首日锁大吉：照常在两条大吉里选（宜忌/市井同走近 7 日去重，首日无前日可避） */
   function lockTier(tier, m, d) {
     var yj = pickOne(OPEN_ABS * 5 + 3, YIJI[tier], []);
-    var pool = [];
-    for (var q = 0; q < SHIJING[tier].length; q++) {
-      if (SHIJING[tier][q].s.indexOf(seasonOf(m)) >= 0) pool.push(SHIJING[tier][q]);
-    }
-    if (!pool.length) pool = SHIJING[tier];
-    var im = pickOne(OPEN_ABS * 7 + 5, pool, []);
+    var im = pickImg(tier, m, OPEN_ABS, []);
     return { tier: tier, yj: yj, im: im };
   }
 
@@ -327,30 +367,62 @@
   }
 
   /* 一天一行 */
-  function lineHtml(tag, m, d, absDay) {
+  /* ---------- 版式（2026-10-18 美化）：历页 + 分栏 + 等第印 + 宜忌章 ----------
+     只改 DOM 与类名；等第/宜/忌文案原样呈现，数据读取与抽签逻辑未动。 */
+
+  /* 等第印：方印，两字上下各一字，平单字居中；沿用 .seal 的印泥/毛边语汇 */
+  function sealHtml(tier, big) {
+    var chars = tier === '平' ? ['平'] : [tier.charAt(0), tier.charAt(1)];
+    return '<div class="al-seal' + (big ? ' al-seal-lg' : '') + ' is-' + tier + '">' +
+      chars.map(function (c) { return '<span>' + esc(c) + '</span>'; }).join('') +
+      '</div>';
+  }
+  /* 宜/忌：事项之间的 · 用淡色分隔，字距加宽；折行悬挂缩进（CSS 对齐字章） */
+  function itemsHtml(s) {
+    return String(s || '').split('·').map(function (x) {
+      return '<i>' + esc(x) + '</i>';
+    }).join('<em>·</em>');
+  }
+  function yijiHtml(宜, 忌, cls) {
+    var h = '<div class="al-yiji ' + cls + '">' +
+      '<div class="al-line"><b class="al-stamp al-stamp-yi">宜</b>' +
+      '<span class="al-items">' + itemsHtml(宜) + '</span></div>';
+    if (忌 && 忌 !== '无') {
+      h += '<div class="al-line"><b class="al-stamp al-stamp-ji">忌</b>' +
+        '<span class="al-items">' + itemsHtml(忌) + '</span></div>';
+    }
+    return h + '</div>';
+  }
+  /* 日名标：朱点 + 日名（今日朱、明后淡墨） */
+  function tagHtml(tag, m, d, major) {
+    var sub = (d <= 30 && CN[d]) ? '' : '';
+    return '<div class="al-daytag' + (major ? ' is-major' : '') + '">' +
+      '<i class="al-dot"></i><span>' + tag + '</span></div>';
+  }
+  /* 一日一块：major=今日（大印+两行），否则次块（小印+单行） */
+  function dayBlockHtml(tag, m, d, absDay, major) {
     var e = entryOfDay(m, d, absDay);
-    var day = MCN[m] + CN[d];
     if (e.级 === '节') {
-      return '<div class="row almanac-row is-festival" title="' + esc(e.文) + '">' +
-        '<span class="k">' + tag + '</span>' +
-        '<span class="v"><b class="almanac-fest">' + esc(e.名) + '</b> · ' + esc(String(e.文 || '').slice(0, 16)) + '…</span></div>';
+      return '<div class="al-row al-fest' + (major ? ' al-major' : '') + '">' +
+        tagHtml(tag, m, d, major) +
+        '<div class="al-fest-body"><b class="al-fest-name">' + esc(e.名) + '</b>' +
+        '<span class="al-fest-text">' + esc(String(e.文 || '')) + '</span></div></div>';
     }
-    if (e.级 === '异') {
-      return '<div class="row almanac-row is-yiri" title="' + esc(e.市) + '">' +
-        '<span class="k">' + tag + '</span>' +
-        '<span class="v"><b class="almanac-fest">' + esc(e.名) + '</b>｜宜 ' + e.宜 + (e.忌 && e.忌 !== '无' ? '｜忌 ' + e.忌 : '') + '</span></div>';
-    }
-    /* 明日过节 → 今日 title 带一笔筹备（等第照抽） */
-    var t1 = addDays(m, d, 1);
-    var eve = festivalAt(t1.m, t1.d);
-    var t = e.级 + '｜宜 ' + e.宜 + (e.忌 && e.忌 !== '无' ? '｜忌 ' + e.忌 : '');
-    var tip = e.市 + (eve ? '（明日' + eve.name + '，市井已有筹备）' : '');
-    return '<div class="row almanac-row is-' + e.级 + '" title="' + esc(tip) + '">' +
-      '<span class="k">' + tag + '</span>' +
-      '<span class="v">' + esc(t) + '</span></div>';
+    var tier = e.级 === '异' ? e.名 : e.级;   /* 异日以名作印文（朔日/望日/月底取首二字） */
+    var sealTxt = e.级 === '异' ? e.名.substring(0, 2) : e.级;
+    var seal = e.级 === '异'
+      ? '<div class="al-seal' + (major ? ' al-seal-lg' : '') + ' is-yiri">' +
+        '<span>' + esc(sealTxt.charAt(0)) + '</span><span>' + esc(sealTxt.charAt(1)) + '</span></div>'
+      : sealHtml(e.级, major);
+    var cls = major ? 'al-major' : 'al-minor';
+    return '<div class="al-row al-day ' + cls + ' is-' + (e.级 === '异' ? 'yiri' : e.级) + '" title="' + esc(e.市 || '') + '">' +
+      tagHtml(tag, m, d, major) +
+      '<div class="al-body">' + seal +
+      yijiHtml(e.宜, e.忌, major ? 'is-major' : 'is-minor') +
+      '</div></div>';
   }
 
-  /* ---------- 渲染：令·左页 #lingHuangli，今/明/后 三行 ---------- */
+  /* ---------- 渲染：令·左页 #lingHuangli ---------- */
   function render(state) {
     var box = document.getElementById('lingHuangli');
     if (!box) return;
@@ -358,18 +430,22 @@
     var ymd = (r.时地 && r.时地['年月日']) || '';
     var p = parseNianYueRi(ymd);
     if (!p) { box.innerHTML = ''; box.hidden = true; return; }
-    var rows = '';
-    rows += lineHtml('今日', p.m, p.d, p.abs);
     var t1 = addDays(p.m, p.d, 1);
-    rows += lineHtml('明日', t1.m, t1.d, p.abs + 1);
     var t2 = addDays(p.m, p.d, 2);
-    rows += lineHtml('后日', t2.m, t2.d, p.abs + 2);
+    var html = '';
+    html += '<div class="block-head">黄历' +
+      '<span class="nianpu-count al-sub" id="lingHuangliNote">今明后三日 · 全城通行</span></div>';
+    html += '<div class="al-sheet">';
+    html += '<div class="al-main">' + dayBlockHtml('今日', p.m, p.d, p.abs, true) + '</div>';
+    html += '<div class="al-side">';
+    html += dayBlockHtml('明日', t1.m, t1.d, p.abs + 1, false);
+    html += '<div class="al-rule-minor"></div>';
+    html += dayBlockHtml('后日', t2.m, t2.d, p.abs + 2, false);
+    html += '</div></div>';
     box.hidden = false;
-    box.innerHTML = '<div class="block-head">黄历<span class="nianpu-count" id="lingHuangliNote">今明后三日 · 全城通行</span></div>' + rows;
+    box.innerHTML = html;
   }
 
-  /* 暴露：tj-ling.js 渲染「令」页时调 TJAlmanac.render(state)；
-     世界书侧同源条目 uid197（规则）/ uid198（池子）——改两处同步 */
   window.TJAlmanac = {
     render: render,
     entryOfDay: entryOfDay,
