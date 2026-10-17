@@ -794,173 +794,199 @@
    让小字悬在大字半腰，位置奇怪）；朱点无基线，单独保持居中 */
 
 /* ==========================================================
-   黄历 · 历页版式（2026-10-18 美化）：只改视觉层
-   令牌全取现有：--paper-hi/--zhu/--zhu-text/--ink/--ink-2/--ink-3、
-   --font-brush/--font-kai/--font-song；不引入新字体与新色值
-   （需要更淡处，用现有色的透明度派生）。
-   印沿用 .seal 语汇（拆层毛边 + 极淡朱晕），线沿用 .ink-rule 的干笔感。
+/* ==========================================================
+   黄历 · 朱线挂三块木牌（2026-10-18 v3）
+   ----------------------------------------------------------
+   只改展示层；等第/宜忌/节俗文案原样呈现。
+   令牌：朱=--zhu、墨=--ink、纸色刻字=--paper-hi、
+         木 hi/lo 用 --nijin/--zhe 派生（不新造色值）；
+         刻字字体 = --font-brush（与「添线 · 将至」「今岁」同族，
+         其栈内已含 KaiTi 兜底；子集字体缺字清单见交付）。
+   木纹用 data URI（不新增外部请求；CDN 上 assets/fonts 已 404 的先例在前）。
+   全部尺寸用 em，整体缩放只改 .tj-hl 的 font-size。
    ========================================================== */
-.almanac { width: 100%; max-width: 340px; margin-top: 16px; }
-.almanac .block-head {
-  align-items: baseline;
-  margin-bottom: 6px;
-  justify-content: space-between;
-}
-.almanac .block-head::before { align-self: center; }
-/* 副题：缩小一档、淡墨、右对齐，'本月无节' 保留朱色（由 JS 写入时包 <em class=al-kong>） */
-.almanac .al-sub {
-  margin-left: auto;
-  font-family: var(--font-song);
-  font-size: var(--fs-micro);
-  color: var(--ink-2);
-  letter-spacing: .04em;
-  text-align: right;
-}
-.almanac .al-sub .al-kong { color: var(--zhu-text); }
+.almanac { width: 100%; max-width: 360px; margin-top: 16px; }
 
-/* --- 历页：淡纸底 + 上下极细墨线 + 左缘朱竖条 --- */
-.al-sheet {
+.tj-hl {
+  --tj-title-font: var(--font-brush), var(--font-kai);
+  --tj-red: var(--zhu);
+  --tj-ink: var(--ink);
+  --tj-paper-ink: var(--paper-hi);
+  --tj-wood-hi: color-mix(in srgb, var(--nijin) 72%, #fff);
+  --tj-wood-mid: var(--nijin);
+  --tj-wood-lo: var(--zhe);
+  --tj-wood-grain: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22360%22%20height%3D%22240%22%3E%3Cfilter%20id%3D%22g%22%20x%3D%220%22%20y%3D%220%22%20width%3D%22100%25%22%20height%3D%22100%25%22%3E%3CfeTurbulence%20type%3D%22fractalNoise%22%20baseFrequency%3D%220.006%200.16%22%20numOctaves%3D%224%22%20seed%3D%2211%22%20stitchTiles%3D%22stitch%22%2F%3E%3CfeColorMatrix%20type%3D%22matrix%22%20values%3D%220%200%200%200%20.33%20%200%200%200%200%20.19%20%200%200%200%200%20.07%20%201.9%200%200%200%20-.72%22%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%22360%22%20height%3D%22240%22%20filter%3D%22url%28%23g%29%22%2F%3E%3C%2Fsvg%3E");
+  font-size: 18px;
   position: relative;
-  display: flex;
-  gap: 10px;
-  padding: 8px 10px 9px;
-  background: color-mix(in srgb, var(--paper-hi) 82%, transparent);
-  border-top: 1px solid rgba(31,27,22,.22);
-  border-bottom: 1px solid rgba(31,27,22,.22);
-  border-left: 2px solid var(--zhu);
-  border-radius: 2px;
 }
-.al-main { flex: 0 0 55%; min-width: 0; }
-.al-side { flex: 1 1 45%; min-width: 0; display: flex; flex-direction: column; }
-/* 次块之间：干笔感细线（沿用 .ink-rule 的 mask 手法），线位像素对齐 */
-.al-rule-minor {
-  height: 5px;
-  margin: 4px 0 5px;
-  background: linear-gradient(90deg, transparent, rgba(31,27,22,.34) 14%, rgba(31,27,22,.26) 62%, transparent);
-  -webkit-mask-image: radial-gradient(60% 100% at 50% 50%, #000 40%, transparent 100%);
-          mask-image: radial-gradient(60% 100% at 50% 50%, #000 40%, transparent 100%);
+
+/* 标题行：标题不折行；副行只在分段处折行 */
+.tj-hl__head { display: flex; align-items: baseline; justify-content: space-between; gap: 1em; margin-bottom: .35em; }
+.tj-hl__title { flex: none; margin: 0; white-space: nowrap; }
+.tj-hl__sub {
+  flex: 0 1 auto; min-width: 0; margin: 0;
+  display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline;
+  gap: 0 .5em; font-size: .72em; text-align: right;
+  font-family: var(--font-song); color: var(--ink-2); letter-spacing: .03em;
 }
-/* --- 日名标 --- */
-.al-daytag {
-  display: flex; align-items: center; gap: 4px;
-  font-family: var(--font-song); font-size: var(--fs-micro);
-  color: var(--ink-2); letter-spacing: .08em; margin-bottom: 3px;
+.tj-hl__sub > span, #lingHuangliNote > span { white-space: nowrap; }
+.tj-hl__sub .al-kong { color: var(--zhu-text); }
+.tj-hl__sub .al-sep {
+  display: inline-block; width: .22em; height: .22em; margin: 0 .45em;
+  border-radius: 50%; background: currentColor; opacity: .45;
+  vertical-align: middle; font-style: normal;
 }
-.al-daytag.is-major { color: var(--zhu-text); }
-.al-dot {
-  width: 4px; height: 4px; border-radius: 50%;
-  background: var(--zhu); opacity: .85; flex: none;
+#lingHuangliNote { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 0 .36em; min-width: 0; }
+#lingHuangliNote .al-sep { flex: none; }
+
+/* 挂牌区 */
+.tj-hl__board {
+  position: relative; display: flex; justify-content: center; align-items: flex-start;
+  gap: 1.6em; padding: .55em .4em .7em;
 }
-/* --- 一日块 --- */
-.al-row { display: block; min-width: 0; }
-.al-body { display: flex; align-items: flex-start; gap: 7px; }
-.al-yiji { flex: 1 1 auto; min-width: 0; }
-.al-line { display: flex; align-items: baseline; gap: 5px; margin: 0 0 2px; }
-.al-line:last-child { margin-bottom: 0; }
-/* 宜/忌小字章：细圆角方框 */
-.al-stamp {
-  flex: none;
-  width: 19px; height: 19px;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-family: var(--font-song); font-size: 12px; font-weight: 700;
-  border-radius: 3px;
-  line-height: 1;
+.tj-hl__rope {
+  position: absolute; left: .5em; right: .5em; top: .45em; height: .2em; border-radius: .1em;
+  background:
+    repeating-linear-gradient(115deg, rgba(255,255,255,.16) 0 .12em, transparent .12em .3em),
+    var(--tj-red);
+  box-shadow: 0 1px 1px rgba(40,20,10,.35);
 }
-.al-stamp-yi { color: var(--zhu-text); border: 1px solid rgba(143,42,35,.55); background: rgba(168,50,42,.07); }
-.al-stamp-ji { color: var(--ink-2); border: 1px solid rgba(31,27,22,.34); background: rgba(31,27,22,.05); }
-/* 事项：· 淡色、字距加宽；折行悬挂缩进与字章对齐 */
-.al-items {
-  font-family: var(--font-kai);
-  font-size: 15px;
-  line-height: 1.35;
+.tj-hl__peg {
+  position: absolute; top: .18em; width: .7em; height: .7em; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--tj-wood-hi), var(--tj-wood-lo) 72%);
+  box-shadow: 0 1px 2px rgba(0,0,0,.4);
+}
+.tj-hl__peg--l { left: .1em; }
+.tj-hl__peg--r { right: .1em; }
+
+/* 木牌 */
+.tj-pai {
+  --ink: var(--tj-ink);
+  --yi: var(--tj-red);
+  --ji: var(--tj-ink);
+  --grade-ink: var(--tj-ink);
+  position: relative; flex: none; isolation: isolate;
+  margin-top: var(--cord, 1.1em);
+  transform-origin: 50% calc(var(--cord, 1.1em) * -1);
+  filter: drop-shadow(.08em .24em .22em rgba(45,28,12,.32));
+}
+.tj-pai:nth-of-type(1) { --cord: 1.1em; }
+.tj-pai:nth-of-type(2) { --cord: 1.5em; }
+.tj-pai:nth-of-type(3) { --cord: 1.2em; }
+.tj-pai::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  border-radius: .3em .3em .45em .45em;
+  background:
+    var(--tj-wood-grain) 0 0 / 14em 9.4em,
+    repeating-linear-gradient(0deg, rgba(80,48,18,.07) 0 .11em, transparent .11em .42em),
+    linear-gradient(180deg, var(--tj-wood-hi), var(--tj-wood-mid) 55%, var(--tj-wood-lo));
+  box-shadow:
+    inset 0 0 0 .06em rgba(70,42,16,.5),
+    inset 0 .12em .12em rgba(255,238,200,.4),
+    inset 0 -.22em .4em rgba(50,28,8,.24);
+}
+.tj-pai--today { width: 8.9em; padding: 1.45em .5em .55em; min-height: 8.8em; display: flex; align-items: center; justify-content: center; }
+.tj-pai--mini  { width: 4.35em; padding: 1.35em .3em .5em; min-height: 6.4em; display: flex; align-items: center; justify-content: center; }
+
+/* 悬孔与红线 */
+.tj-pai__hole {
+  position: absolute; left: 50%; top: .4em; width: .55em; height: .55em; margin-left: -.275em;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, #2b1a0b 0 55%, color-mix(in srgb, var(--tj-wood-lo) 70%, #000) 100%);
+  box-shadow: inset 0 .05em .1em rgba(0,0,0,.6), 0 .05em 0 rgba(255,236,200,.35);
+}
+.tj-pai__cord {
+  position: absolute; left: 50%; width: .13em; margin-left: -.065em;
+  background: var(--tj-red);
+  top: calc(var(--cord, 1.1em) * -1);
+  height: calc(var(--cord, 1.1em) + .7em);
+}
+
+/* 竖排刻字：row-reverse = 自右向左（日名 → 等第 → 宜 → 忌） */
+.tj-pai__cols {
+  position: relative; display: flex; flex-direction: row-reverse;
+  gap: .55em; align-items: center; justify-content: center;
+}
+.tj-pai__cols > * {
+  writing-mode: vertical-rl;
+  font-family: var(--tj-title-font);
   color: var(--ink);
-  letter-spacing: .12em;
-  padding-left: 0;
-  text-indent: 0;
+  line-height: 1.12; letter-spacing: .06em;
+  text-shadow: 0 .05em 0 rgba(255,236,200,.45), 0 -.04em 0 rgba(30,15,5,.28);
 }
-.al-items i { font-style: normal; }
-.al-items em { font-style: normal; color: var(--ink-3); padding: 0 .18em; letter-spacing: 0; }
-.al-yiji.is-minor .al-items { font-size: 13.5px; color: var(--ink-2); }
-.al-day.al-minor .al-items { letter-spacing: .06em; }
+.tj-pai__day { font-size: .72em; opacity: .78; padding-top: .1em; }
+.tj-pai__grade { color: var(--grade-ink); }
+.tj-pai--today .tj-pai__grade { font-size: 3.1em; }
+.tj-pai--mini  .tj-pai__grade { font-size: 1.7em; }
+.tj-pai__yi, .tj-pai__ji { font-size: .9em; }
+.tj-pai__yi b { color: var(--yi); font-weight: normal; margin-inline-end: .35em; }
+.tj-pai__ji b { color: var(--ji); font-weight: normal; margin-inline-end: .35em; }
+.tj-pai__cols .it + .it { margin-inline-start: .4em; }
+.tj-pai__cols .al-more { opacity: .7; }
 
-/* --- 等第印：五档靠「填充+描边+色」三重区分 --- */
-.al-seal {
-  position: relative; z-index: 0; flex: none;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  width: 30px; height: 30px;
-  font-family: var(--font-song); font-weight: 700; font-size: 14px; line-height: 1.02;
-  border-radius: 3px;
-  transform: rotate(-2.5deg);
+/* 等第变体：靠牌不靠贴纸 */
+.tj-pai[data-grade="大吉"] { --grade-ink: var(--tj-red); }
+.tj-pai[data-grade="小吉"] { --grade-ink: #b4473a; }
+.tj-pai[data-grade="小凶"] { --grade-ink: #3a2a1c; }
+.tj-pai[data-grade="小凶"]::before { filter: saturate(.75) brightness(.9); }
+.tj-pai[data-grade="大凶"] {
+  --ink: var(--tj-paper-ink); --grade-ink: #efe3c8;
+  --yi: #d2553f; --ji: var(--tj-paper-ink);
 }
-.al-seal-lg { width: 60px; height: 60px; font-size: 27px; border-radius: 4px; }
-.al-seal span { display: block; }
-/* 大吉：朱砂实心，纸色字 */
-.al-seal.is-大吉 { background: linear-gradient(150deg, var(--zhu), #7d221c); color: #f4e8da; box-shadow: inset 0 1px 0 rgba(255,220,190,.26), inset 0 -2px 3px rgba(58,13,10,.5); }
-/* 小吉：朱红描边，朱红字，无填充 */
-.al-seal.is-小吉 { background: none; border: 1.5px solid var(--zhu); color: var(--zhu-text); }
-/* 平：淡墨细描边，墨灰字（最小最淡，让平日安静） */
-.al-seal.is-平 { background: none; border: 1px solid rgba(90,82,68,.42); color: var(--ink-2); font-size: 13px; }
-.al-seal-lg.is-平 { font-size: 25px; }
-/* 小凶：浓墨描边（略粗），墨字，无填充 */
-.al-seal.is-小凶 { background: none; border: 2px solid rgba(31,27,22,.72); color: var(--ink); }
-/* 大凶：墨黑实心，纸色字（呼应岁轮冬半深色块） */
-.al-seal.is-大凶 { background: linear-gradient(150deg, #2b241d, #16120e); color: #f4e8da; box-shadow: inset 0 1px 0 rgba(255,255,255,.08), inset 0 -2px 3px rgba(0,0,0,.45); }
-/* 异日：泥金细边，赭字 */
-.al-seal.is-yiri { background: none; border: 1.5px solid var(--nijin); color: var(--zhe); }
-/* 今日印极淡朱晕（只今日，不叠投影） */
-.al-seal-lg.is-大吉::after,
-.al-seal-lg.is-大凶::after {
-  content: ""; position: absolute; inset: -3px; z-index: -2;
-  background: rgba(121,34,27,.13); filter: blur(5px); border-radius: 5px;
+.tj-pai[data-grade="大凶"]::before {
+  background:
+    var(--tj-wood-grain) 0 0 / 14em 9.4em,
+    linear-gradient(180deg, #3a302a, #241c18 60%, #1a1411);
+  box-shadow:
+    inset 0 0 0 .06em rgba(0,0,0,.7),
+    inset 0 .1em .1em rgba(255,255,255,.1),
+    inset 0 -.22em .4em rgba(0,0,0,.4);
 }
-/* 次块整体降到约七成墨色，形成近远层次 */
-.al-day.al-minor .al-items { color: rgba(31,27,22,.72); }
-.al-day.al-minor .al-stamp { opacity: .78; }
-.al-day.al-minor .al-seal { opacity: .82; }
+.tj-pai[data-grade="大凶"] .tj-pai__cols > * { text-shadow: 0 .05em 0 rgba(0,0,0,.55); }
+.tj-pai[data-grade="节"] { --ink: var(--tj-paper-ink); --grade-ink: var(--tj-paper-ink); }
+.tj-pai[data-grade="节"]::before {
+  background:
+    var(--tj-wood-grain) 0 0 / 14em 9.4em,
+    linear-gradient(180deg, color-mix(in srgb, var(--zhu) 78%, #fff), #8f1f17);
+  box-shadow:
+    inset 0 0 0 .06em rgba(60,10,6,.55),
+    inset 0 .12em .12em rgba(255,200,180,.28),
+    inset 0 -.22em .4em rgba(40,5,3,.3);
+}
+.tj-pai[data-grade="异"] { --grade-ink: var(--zhe); }
+.tj-pai[data-grade="异"]::before {
+  box-shadow:
+    inset 0 0 0 .06em color-mix(in srgb, var(--zhe) 60%, transparent),
+    inset 0 .12em .12em rgba(255,238,200,.4),
+    inset 0 -.22em .4em rgba(50,28,8,.2);
+}
 
-/* --- 节日行 --- */
-.al-fest-body { display: flex; flex-direction: column; gap: 1px; }
-.al-fest-name { font-family: var(--font-brush); font-size: 17px; color: var(--zhu-text); font-weight: normal; }
-.al-day.al-major .al-fest-name { font-size: 21px; }
-.al-fest-text { font-family: var(--font-kai); font-size: 13.5px; color: var(--ink-2); line-height: 1.4; }
-
-/* --- 动效：印章一下 + 其余淡入（克制，遵守 prefers-reduced-motion） --- */
-@keyframes al-stamp-in { from { transform: rotate(-2.5deg) scale(1.10); opacity: 0; } to { transform: rotate(-2.5deg) scale(1); opacity: 1; } }
-@keyframes al-rise-in { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
-.al-day.al-major .al-seal { animation: al-stamp-in 180ms ease-out both; }
-.al-day.al-major .al-yiji,
-.al-day.al-major .al-daytag { animation: al-rise-in 220ms ease-out both; }
-.al-side > .al-day { animation: al-rise-in 220ms ease-out both; }
-.al-side > .al-day:last-of-type { animation-delay: 40ms; }
+/* 动效：换日/进页轻摆一次；悬停再摆 */
+@keyframes tj-sway {
+  0% { transform: rotate(0); }
+  25% { transform: rotate(2.2deg); }
+  55% { transform: rotate(-1.4deg); }
+  80% { transform: rotate(.6deg); }
+  100% { transform: rotate(0); }
+}
+.tj-pai.is-swing, .tj-pai:hover { animation: tj-sway .9s cubic-bezier(.3,.6,.4,1); }
 @media (prefers-reduced-motion: reduce) {
-  .al-day.al-major .al-seal,
-  .al-day.al-major .al-yiji,
-  .al-day.al-major .al-daytag,
-  .al-side > .al-day { animation: none; }
+  .tj-pai, .tj-pai.is-swing, .tj-pai:hover { animation: none !important; }
 }
 
-/* --- 窄窗退化为竖排：今日大、明后小 --- */
-@media (max-width: 300px) {
-  .al-sheet { flex-direction: column; }
-  .al-main, .al-side { flex: 1 1 auto; }
-  .al-rule-minor { margin: 5px 0; }
+/* 悬停兜底提示（岁轮提示组件内部耦合高，未复用） */
+.tj-tip {
+  position: absolute; z-index: 5; transform: translateX(-50%);
+  padding: .45em .7em; background: var(--paper-hi); color: var(--ink);
+  font-family: var(--font-kai); font-size: .8em; line-height: 1.5;
+  border: 1px solid rgba(90,58,28,.35);
+  box-shadow: 0 .25em .6em rgba(40,25,10,.22);
+  white-space: nowrap; pointer-events: none; border-radius: 2px;
 }
 
-/* 旧类名保留兼容（万一别处还在用）：不再用于新结构，但不破坏 */
-.almanac-row .k { min-width: 3em; color: var(--ink-2); font-size: 14px; }
-.almanac-row .v { font-size: 14px; }
-.almanac-fest { font-family: var(--font-brush); color: var(--zhu-text); font-weight: normal; }
-
-.almanac .block-head::before { align-self: center; }
-.almanac-row .k { min-width: 3em; color: var(--ink-2); font-size: 14px; }
-.almanac-row .v { font-size: 14px; }
-.almanac-row.is-大吉 .v,
-.almanac-row.is-大凶 .v { color: var(--zhu-text, #a8322a); }
-.almanac-row.is-平 .v { color: var(--ink-2); }
-.almanac-row.is-festival .v,
-.almanac-row.is-yiri .v { color: var(--ink); }
-.almanac-fest {
-  font-family: var(--font-brush);
-  color: var(--zhu-text, #a8322a);
-  font-weight: normal;
+/* 窄窗：只缩 font-size，三牌不溢出 */
+@media (max-width: 320px) {
+  .tj-hl { font-size: 15px; }
+  .tj-pai--today { width: 7.4em; }
+  .tj-pai--mini  { width: 3.9em; }
 }
