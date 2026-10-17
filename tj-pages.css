@@ -969,19 +969,20 @@
   80% { transform: rotate(.6deg); }
   100% { transform: rotate(0); }
 }
-.tj-pai.is-swing, .tj-pai:hover { animation: tj-sway .9s cubic-bezier(.3,.6,.4,1); }
+.tj-pai:hover { animation: tj-sway .9s cubic-bezier(.3,.6,.4,1); }   /* 切页摆动走 WAAPI，见 tj-almanac.js */
 @media (prefers-reduced-motion: reduce) {
-  .tj-pai, .tj-pai.is-swing, .tj-pai:hover { animation: none !important; }
+  .tj-pai, .tj-pai:hover { animation: none !important; }
 }
 
 /* 悬停兜底提示（岁轮提示组件内部耦合高，未复用） */
 .tj-tip {
-  position: absolute; z-index: 5; transform: translateX(-50%);
+  position: fixed; z-index: 2147482000;   /* 挂 body + fixed：不被书页 overflow 裁切 */
   padding: .45em .7em; background: var(--paper-hi); color: var(--ink);
   font-family: var(--font-kai); font-size: .8em; line-height: 1.5;
   border: 1px solid rgba(90,58,28,.35);
   box-shadow: 0 .25em .6em rgba(40,25,10,.22);
-  white-space: nowrap; pointer-events: none; border-radius: 2px;
+  white-space: normal; max-width: 100%; box-sizing: border-box;
+  pointer-events: none; border-radius: 2px; text-align: left;
 }
 
 /* 窄窗：只缩 font-size，三牌不溢出 */
