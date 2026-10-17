@@ -436,7 +436,7 @@
     tipEl = document.createElement('div');
     tipEl.className = 'tj-tip';
     tipEl.hidden = true;
-    box.appendChild(tipEl);
+    (document.body || box).appendChild(tipEl);   /* 挂到 body：不被书页 overflow 裁切 */
     return tipEl;
   }
   function bindTips(box) {
@@ -449,9 +449,18 @@
       tip.hidden = false;
       var r = el.getBoundingClientRect();
       var pr = box.getBoundingClientRect();
-      var left = r.left - pr.left + r.width / 2;
-      tip.style.left = Math.max(4, Math.min(left, pr.width - 8)) + 'px';
-      tip.style.top = (r.top - pr.top + r.height * 0.35) + 'px';
+      var vw = window.innerWidth || 400, vh = window.innerHeight || 800;
+      /* 先量提示自身宽度，再钳进视口（第三牌贴右缘时不溢出） */
+      tip.style.maxWidth = Math.max(80, Math.min(pr.width - 10, vw - 16)) + 'px';
+      var tw = tip.offsetWidth || 100;
+      var cx = r.left + r.width / 2 - tw / 2;
+      cx = Math.max(8, Math.min(cx, vw - tw - 8));
+      tip.style.left = cx + 'px';
+      /* 垂直：优先牌下方；视口底放不下就翻到牌上方 */
+      var th = tip.offsetHeight || 24;
+      var ty = r.bottom + 6;
+      if (ty + th > vh - 8) ty = Math.max(8, r.top - th - 6);
+      tip.style.top = ty + 'px';
     }
     function hide() { tip.hidden = true; }
     Array.prototype.forEach.call(box.querySelectorAll('.tj-pai'), function (el) {
@@ -490,6 +499,32 @@
     noteObs.observe(note, { childList: true, characterData: true, subtree: true });
   }
 
+  /* 摆动：六段阻尼衰减，越摆越小；transform-origin 在悬绳上（CSS 已设） */
+  function swingPai(box) {
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) return;
+    Array.prototype.forEach.call(box.querySelectorAll('.tj-pai'), function (el, i) {
+      if (!el.animate) return;
+      try {
+        el.animate([
+          { transform: 'rotate(0deg)' },
+          { transform: 'rotate(2.6deg)', offset: 0.16 },
+          { transform: 'rotate(-1.9deg)', offset: 0.38 },
+          { transform: 'rotate(1.15deg)', offset: 0.58 },
+          { transform: 'rotate(-0.62deg)', offset: 0.74 },
+          { transform: 'rotate(0.28deg)', offset: 0.87 },
+          { transform: 'rotate(-0.1deg)', offset: 0.94 },
+          { transform: 'rotate(0deg)' }
+        ], {
+          duration: 1150,
+          delay: i * 70,
+          easing: 'cubic-bezier(.26,.62,.28,1)',
+          fill: 'both'
+        });
+      } catch (e) {}
+    });
+  }
+
   /* ---------- 渲染：令·左页 #lingHuangli ---------- */
   function render(state) {
     var box = document.getElementById('lingHuangli');
@@ -519,13 +554,8 @@
     box.hidden = false;
     box.innerHTML = html;
 
-    /* 轻摆一次（换日/进页），错落 90ms */
-    Array.prototype.forEach.call(box.querySelectorAll('.tj-pai'), function (el, i) {
-      el.classList.remove('is-swing');
-      void el.offsetWidth;
-      el.style.animationDelay = (i * 90) + 'ms';
-      el.classList.add('is-swing');
-    });
+    /* 轻摆一次（换日/进页）：WAAPI 阻尼振荡，错落 70ms，不触发重排 */
+    swingPai(box);
     bindTips(box);
     watchNote(box);
     splitNote(document.getElementById('lingHuangliNote'));
