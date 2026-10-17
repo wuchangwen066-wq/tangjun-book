@@ -202,11 +202,17 @@
     return null;
   }
 
-  /* 「丁未年 · 十月初二」→ {m,d,abs} */
+  /* 「丁未年 · 十月初二」→ {m,d,abs}。
+     2026-10-18 修（真机 bug）：状态栏的年月日**常常不带年号**（真机实测
+     TJ_STATE.棠郡.时地.年月日 = "十月二日"，见 InitVar/起手条目 uid83/87）。
+     旧写法「无年号即第 0 年」会算出 abs=272 < 元年起点，抽取返回空 → 黄历整块消失。
+     册中元年为丁未（开局锚定丁未年十月二日），故**只有显式出现别的年号才按他年计**，
+     无年号一律按丁未年 —— 与开局设定、与「首日大吉」铁律都对得上。 */
   function parseNianYueRi(str) {
     var md = window.SuilunCal && window.SuilunCal.parseYueRi ? window.SuilunCal.parseYueRi(str) : null;
     if (!md) return null;
-    var y = /丁未年/.test(String(str || '')) ? 1 : 0;
+    var s = String(str || '');
+    var y = /戊申年|己酉年|庚戌年/.test(s) ? 0 : 1;   /* 无年号＝丁未年 */
     return { m: md.month, d: md.day, abs: y * 360 + (md.month - 1) * 30 + md.day };
   }
 
@@ -305,6 +311,18 @@
       }
     }
     var e = dayEntryOf(absDay, m, d);
+    /* 2026-10-18 兜底：抽签万一取不到（abs 落在册外、池子缺项等），
+       退回直接抽一套宜忌+市井，绝不返回半成品让调用方崩掉 —— 黄历宁可朴素，不可消失。 */
+    if (!e || !e.yj || !e.im) {
+      var fbTier = (e && e.tier) || pickTier(absDay * 3 + 1, []);
+      var fbY = pickOne(absDay * 5 + 3, YIJI[fbTier], []);
+      var fbPool = [];
+      for (var q = 0; q < SHIJING[fbTier].length; q++) {
+        if (SHIJING[fbTier][q].s.indexOf(seasonOf(m)) >= 0) fbPool.push(SHIJING[fbTier][q]);
+      }
+      var fbS = pickOne(absDay * 7 + 5, fbPool.length ? fbPool : SHIJING[fbTier], []);
+      return { 级: fbTier, 宜: fbY.宜, 忌: fbY.忌, 市: fbS.t, 钩: '无' };
+    }
     return { 级: e.tier, 宜: e.yj.宜, 忌: e.yj.忌, 市: e.im.t, 钩: '无' };
   }
 
